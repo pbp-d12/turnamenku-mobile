@@ -30,13 +30,11 @@ Aplikasi ini terdiri dari 5 modul utama yang terintegrasi. Berikut adalah rincia
 
 | Nama Modul | Deskripsi Fitur | Penanggung Jawab (PIC) |
 | :--- | :--- | :--- |
-| **User Profile & Auth** (`main`) | Menangani registrasi, login, logout, serta tampilan dan pengeditan profil pengguna (Bio, Foto, Role). | **Gibran Tegar Ramadhan P. L.** |
-| **Tournaments** (`tournaments`) | Menampilkan daftar turnamen, detail turnamen, pencarian, dan jadwal pertandingan (*Match*). | **Izzudin Abdul Rasyid** |
-| **Teams** (`teams`) | Mengelola pembuatan tim, daftar anggota tim, serta fitur bergabung (*join*) atau keluar (*leave*) dari tim. | **Hillary Elizabeth Clara P.** |
-| **Forum** (`forums`) | Menyediakan wadah diskusi (Thread & Comments) spesifik untuk setiap turnamen dengan tampilan interaktif. | **Muhathir Muhammad R. O.** |
-| **Prediction** (`predictions`) | Fitur *voting* prediksi pemenang pertandingan dan menampilkan *leaderboard* poin pengguna. | **Bermulya Anugrah Putra** |
-
-*(Catatan: Sesuaikan kolom PIC di atas dengan pembagian tugas aktual kelompok kalian)*
+| **User Profile & Auth** (`main`) | Menangani registrasi, login, logout, serta tampilan dan pengeditan profil pengguna (Bio, Foto, Role). | **Bermulya Anugrah Putra** |
+| **Tournaments** (`tournaments`) | Menampilkan daftar turnamen, detail turnamen, pencarian, dan jadwal pertandingan (*Match*). | **Gibran Tegar Ramadhan P. L.** |
+| **Teams** (`teams`) | Mengelola pembuatan tim, daftar anggota tim, serta fitur bergabung (*join*) atau keluar (*leave*) dari tim. | **Muhathir Muhammad R. O.** |
+| **Forum** (`forums`) | Menyediakan wadah diskusi (Thread & Comments) spesifik untuk setiap turnamen dengan tampilan interaktif. | **Hillary Elizabeth Clara P.** |
+| **Prediction** (`predictions`) | Fitur *voting* prediksi pemenang pertandingan dan menampilkan *leaderboard* poin pengguna. | **Izzudin Abdul Rasyid** |
 
 ---
 
