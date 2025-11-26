@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
+import 'package:turnamenku_mobile/core/theme/app_theme.dart';
+import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,10 +22,16 @@ class MyApp extends StatelessWidget {
         title: 'Turnamenku Mobile',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.blue400,
+            primary: AppColors.blue400,
+            background: AppColors.blue50,
+          ),
           useMaterial3: true,
+          scaffoldBackgroundColor: AppColors.blue50,
+          fontFamily: 'Poppins', // Kalau udah nambah font
         ),
-        home: const LoginPage(),
+        home: const HomePage(), // Start as Guest
       ),
     );
   }

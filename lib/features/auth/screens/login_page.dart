@@ -16,7 +16,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -29,9 +28,14 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       backgroundColor: AppColors.blue50,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.blue400),
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           child: Card(
             elevation: 4,
             color: AppColors.white,
@@ -56,6 +60,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 32),
 
+                    // Username Field
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -77,31 +82,17 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.blue300,
-                            width: 2,
-                          ),
                         ),
                         filled: true,
                         fillColor: Colors.white,
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Username tidak boleh kosong';
-                        }
-                        return null;
-                      },
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Username wajib diisi'
+                          : null,
                     ),
                     const SizedBox(height: 16),
 
+                    // Password Field
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -124,18 +115,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.blue300,
-                            width: 2,
-                          ),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -150,15 +129,13 @@ class _LoginPageState extends State<LoginPage> {
                               setState(() => _isObscure = !_isObscure),
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Password tidak boleh kosong';
-                        }
-                        return null;
-                      },
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Password wajib diisi'
+                          : null,
                     ),
                     const SizedBox(height: 24),
 
+                    // Tombol Login
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -169,7 +146,6 @@ class _LoginPageState extends State<LoginPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          elevation: 0,
                         ),
                         onPressed: _isLoading
                             ? null
@@ -184,12 +160,24 @@ class _LoginPageState extends State<LoginPage> {
 
                                   if (context.mounted) {
                                     if (response['status'] == true) {
-                                      String uname = response['username'];
+                                      // --- CONSTRUCT USER DATA ---
+                                      // Buat data sementara untuk dikirim ke Home
+                                      // (Nanti Home akan fetch data lengkap lagi dari API)
+                                      Map<String, dynamic> simpleUserData = {
+                                        'username': response['username'],
+                                        // Placeholder sampai API home selesai loading
+                                        'role': 'Loading...',
+                                        'email': '',
+                                        'profile_picture': '',
+                                      };
+
                                       Navigator.pushReplacement(
                                         context,
+                                        // PASSING KE HOME DENGAN PARAMETER BARU
                                         MaterialPageRoute(
-                                          builder: (context) =>
-                                              HomePage(username: uname),
+                                          builder: (context) => HomePage(
+                                            userData: simpleUserData,
+                                          ),
                                         ),
                                       );
                                       CustomSnackbar.show(
@@ -225,9 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
