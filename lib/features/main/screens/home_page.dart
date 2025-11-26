@@ -40,9 +40,6 @@ class _HomePageState extends State<HomePage> {
       final homeResponse = await request.get(Endpoints.homeData);
       var fetchedHomeData = HomeData.fromJson(homeResponse);
 
-      // HAPUS IF INI: if (fetchedHomeData.userData != null) {
-      // KITA GANTI JADI FORCE FETCH:
-
       try {
         debugPrint("Mencoba Force Fetch Profile...");
         // Langsung tembak API Profile tanpa permisi
@@ -91,8 +88,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     // LOGIC UTAMA:
-    // Gunakan _homeData (dari API) jika ada.
-    // Jika belum ada, gunakan widget.userData (dari Login Page / Loading state).
     final displayUserData = _homeData?.userData ?? widget.userData;
     final bool isLoggedIn = displayUserData != null;
 
@@ -109,24 +104,8 @@ class _HomePageState extends State<HomePage> {
           if (isLoggedIn)
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white,
-                backgroundImage:
-                    (displayUserData['profile_picture'] != null &&
-                        displayUserData['profile_picture'] != "")
-                    ? NetworkImage(displayUserData['profile_picture'])
-                    : null,
-                child:
-                    (displayUserData['profile_picture'] == null ||
-                        displayUserData['profile_picture'] == "")
-                    ? const Icon(
-                        Icons.person,
-                        size: 20,
-                        color: AppColors.blue400,
-                      )
-                    : null,
-              ),
+              // MENGGUNAKAN WIDGET HELPER
+              child: _buildProfileImage(displayUserData['profile_picture'], 16),
             ),
         ],
       ),
@@ -246,21 +225,9 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           if (isLoggedIn && userData != null) ...[
-            // VIEW USER
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              backgroundImage:
-                  (userData['profile_picture'] != null &&
-                      userData['profile_picture'] != "")
-                  ? NetworkImage(userData['profile_picture'])
-                  : null,
-              child:
-                  (userData['profile_picture'] == null ||
-                      userData['profile_picture'] == "")
-                  ? const Icon(Icons.person, size: 40, color: AppColors.blue300)
-                  : null,
-            ),
+            // MENGGUNAKAN WIDGET HELPER
+            _buildProfileImage(userData['profile_picture'], 40),
+
             const SizedBox(height: 16),
             Text(
               "Halo, ${userData['username']}!",
@@ -363,6 +330,95 @@ class _HomePageState extends State<HomePage> {
           ],
         ],
       ),
+    );
+  }
+
+  // --- WIDGET BARU UNTUK HANDLE GAMBAR (SOLUSI) ---
+  Widget _buildProfileImage(String? url, double radius) {
+    // 1. Cek apakah URL Valid
+    bool hasUrl = url != null && url.isNotEmpty;
+
+    // 2. Konstruksi URL Lengkap (Tambahkan Base URL jika URL relatif)
+    String? fullUrl;
+    if (hasUrl) {
+      if (url.startsWith('http')) {
+        fullUrl = url;
+      } else {
+        // Handle slash di awal (jika URL dimulai dengan /media/...)
+        fullUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
+      }
+      debugPrint("Load Image URL: $fullUrl");
+    }
+
+    // 3. Menggunakan Image.network dengan ErrorBuilder
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white, // Background putih di belakang gambar
+      ),
+      child: ClipOval(
+        child: hasUrl
+            ? Image.network(
+                fullUrl!,
+                fit: BoxFit.cover,
+                // Loading Spinner
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: SizedBox(
+                      width: radius,
+                      height: radius,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                // KALAU ERROR, TAMPILKAN GAMBAR DEFAULT DARI SERVER
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint("GAGAL LOAD GAMBAR: $error");
+                  // Menggunakan gambar default dari server
+                  return _buildFallbackImage(radius);
+                },
+              )
+            : _buildFallbackImage(radius), // Fallback jika URL null/kosong
+      ),
+    );
+  }
+
+  // WIDGET BARU: Menggunakan NetworkImage untuk gambar default
+  Widget _buildFallbackImage(double radius) {
+    // Path gambar default dari Django (sesuai permintaan Anda)
+    const String defaultAvatarPath = '/static/images/default_avatar.png';
+    // Konstruksi URL lengkap
+    final String defaultAvatarUrl = "${Endpoints.baseUrl}$defaultAvatarPath";
+
+    debugPrint("Mencoba Load Default Image URL: $defaultAvatarUrl");
+
+    // NetworkImage untuk gambar default
+    return Image.network(
+      defaultAvatarUrl,
+      fit: BoxFit.cover,
+      // Fallback terakhir: jika NetworkImage default pun gagal (misal server down)
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint("GAGAL LOAD GAMBAR DEFAULT: $error");
+        // Kembali ke Icon sederhana
+        return Container(
+          color: Colors.grey[200],
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.person,
+            size: radius * 1.2,
+            color: AppColors.blue400,
+          ),
+        );
+      },
     );
   }
 

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:turnamenku_mobile/core/environments/endpoints.dart'; // Import Endpoints diperlukan untuk helper image
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart';
 import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/auth/services/auth_service.dart';
 import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
-import 'package:turnamenku_mobile/features/main/screens/profile_page.dart'; 
+import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
 import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
 
 class LeftDrawer extends StatelessWidget {
@@ -70,16 +71,8 @@ class LeftDrawer extends StatelessWidget {
               displayEmail,
               style: const TextStyle(color: Colors.white70),
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: AppColors.white,
-              backgroundImage:
-                  (profilePicUrl != null && profilePicUrl.isNotEmpty)
-                  ? NetworkImage(profilePicUrl)
-                  : null,
-              child: (profilePicUrl == null || profilePicUrl.isEmpty)
-                  ? const Icon(Icons.person, size: 40, color: AppColors.blue300)
-                  : null,
-            ),
+            // PENGGANTIAN LOGIKA IMAGE LAMA DENGAN HELPER BARU
+            currentAccountPicture: _buildProfileImage(profilePicUrl, 36),
           ),
 
           // MENU ITEMS
@@ -104,7 +97,7 @@ class LeftDrawer extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const TournamentListPage(),
+                  builder: (context) => TournamentListPage(userData: userData),
                 ),
               );
             },
@@ -125,10 +118,12 @@ class LeftDrawer extends StatelessWidget {
               icon: Icons.person_rounded,
               title: "Profile",
               onTap: () {
+                // FIX: ProfilePage sekarang tidak membutuhkan argumen username
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProfilePage(username: displayName),
+                    builder: (context) =>
+                        const ProfilePage(), // DIUBAH MENJADI const ProfilePage()
                   ),
                 );
               },
@@ -200,6 +195,72 @@ class LeftDrawer extends StatelessWidget {
         ),
       ),
       onTap: onTap,
+    );
+  }
+
+  // --- WIDGET HELPER PROFILE IMAGE (DISALIN DARI home_page.dart) ---
+
+  Widget _buildProfileImage(String? url, double radius) {
+    bool hasUrl = url != null && url.isNotEmpty;
+
+    // 2. Konstruksi URL Lengkap (Tambahkan Base URL jika URL relatif)
+    String? fullUrl;
+    if (hasUrl) {
+      if (url.startsWith('http')) {
+        fullUrl = url;
+      } else {
+        // Handle slash di awal (jika URL dimulai dengan /media/...)
+        fullUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
+      }
+    }
+
+    // 3. Menggunakan Image.network dengan ErrorBuilder
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+      ),
+      child: ClipOval(
+        child: hasUrl
+            ? Image.network(
+                fullUrl!,
+                fit: BoxFit.cover,
+                // KALAU ERROR, TAMPILKAN GAMBAR DEFAULT DARI SERVER
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildFallbackImage(radius);
+                },
+              )
+            : _buildFallbackImage(radius), // Fallback jika URL null/kosong
+      ),
+    );
+  }
+
+  // WIDGET BARU: Menggunakan NetworkImage untuk gambar default
+  Widget _buildFallbackImage(double radius) {
+    // Path gambar default dari Django (sesuai permintaan user)
+    const String defaultAvatarPath = '/static/images/default_avatar.png';
+    // Konstruksi URL lengkap
+    final String defaultAvatarUrl = "${Endpoints.baseUrl}$defaultAvatarPath";
+
+    // NetworkImage untuk gambar default
+    return Image.network(
+      defaultAvatarUrl,
+      fit: BoxFit.cover,
+      // Fallback terakhir: jika NetworkImage default pun gagal (server down)
+      errorBuilder: (context, error, stackTrace) {
+        // Kembali ke Icon sederhana
+        return Container(
+          color: Colors.grey[200],
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.person,
+            size: radius * 1.2,
+            color: AppColors.blue400,
+          ),
+        );
+      },
     );
   }
 }

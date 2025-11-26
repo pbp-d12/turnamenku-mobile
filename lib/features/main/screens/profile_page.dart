@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:turnamenku_mobile/core/environments/endpoints.dart';
+import 'package:turnamenku_mobile/core/environments/endpoints.dart'; // DIPERLUKAN UNTUK IMAGE HELPER
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
+import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart'; // BARU: Custom Snackbar
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
 
 class ProfilePage extends StatefulWidget {
-  final String username;
-
-  const ProfilePage({super.key, required this.username});
+  // FINAL STRING USERNAME SUDAH DIHAPUS (Sesuai permintaan sebelumnya)
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -17,7 +17,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
-  String? _errorMessage;
+  String? _errorMessage; // Tetap dipakai untuk tampilan error di body
 
   @override
   void initState() {
@@ -30,21 +30,30 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final response = await request.get(Endpoints.userProfile);
 
-      // Cek status dari response JSON backend
       if (response['status'] == true) {
         setState(() {
           _profileData = response;
           _isLoading = false;
         });
       } else {
+        final String message = response['message'] ?? "Gagal mengambil data";
         setState(() {
-          _errorMessage = response['message'] ?? "Gagal mengambil data";
+          _errorMessage = message;
           _isLoading = false;
         });
+        // BARU: Tampilkan Custom Snackbar Error
+        if (context.mounted) {
+          CustomSnackbar.show(context, message, SnackbarStatus.error);
+        }
       }
     } catch (e) {
+      const String message = "Terjadi kesalahan koneksi.";
+      // BARU: Tampilkan Custom Snackbar Error
+      if (context.mounted) {
+        CustomSnackbar.show(context, message, SnackbarStatus.error);
+      }
       setState(() {
-        _errorMessage = "Terjadi kesalahan koneksi.";
+        _errorMessage = message;
         _isLoading = false;
       });
     }
@@ -52,7 +61,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Siapkan data untuk Drawer biar menu-nya sinkron
     Map<String, dynamic>? drawerUserData;
     if (_profileData != null) {
       drawerUserData = {
@@ -72,19 +80,9 @@ class _ProfilePageState extends State<ProfilePage> {
           "Profil Saya",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() => _isLoading = true);
-              fetchProfile();
-            },
-          ),
-        ],
+        // ACTIONS (Tombol Refresh) DIHAPUS SESUAI PERMINTAAN
       ),
-      drawer: LeftDrawer(
-        userData: drawerUserData,
-      ), // Pass data update ke Drawer
+      drawer: LeftDrawer(userData: drawerUserData),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -100,7 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: fetchProfile,
+                    onPressed: fetchProfile, // Tombol Coba Lagi tetap ada
                     child: const Text("Coba Lagi"),
                   ),
                 ],
@@ -121,7 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          // Foto Profil
+                          // Foto Profil (MENGGUNAKAN HELPER IMAGE YANG ROBUST)
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
@@ -130,25 +128,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                 width: 3,
                               ),
                             ),
-                            child: CircleAvatar(
-                              radius: 50,
-                              backgroundColor: AppColors.blue50,
-                              backgroundImage:
-                                  (_profileData!['profile_picture'] != null &&
-                                      _profileData!['profile_picture'] != "")
-                                  ? NetworkImage(
-                                      _profileData!['profile_picture'],
-                                    )
-                                  : null,
-                              child:
-                                  (_profileData!['profile_picture'] == null ||
-                                      _profileData!['profile_picture'] == "")
-                                  ? const Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: AppColors.blue300,
-                                    )
-                                  : null,
+                            // PENGGANTIAN DENGAN HELPER IMAGE
+                            child: _buildProfileImage(
+                              _profileData!['profile_picture'],
+                              50,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -244,11 +227,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                       onPressed: () {
-                        // TODO: Navigasi ke EditProfilePage
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Fitur Edit Profil segera hadir!"),
-                          ),
+                        // BARU: Menggunakan Custom Snackbar Info
+                        CustomSnackbar.show(
+                          context,
+                          "Fitur Edit Profil segera hadir!",
+                          SnackbarStatus.info,
                         );
                       },
                     ),
@@ -258,6 +241,64 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
     );
   }
+
+  // --- WIDGET HELPER PROFILE IMAGE (Disalin dari left_drawer.dart/home_page.dart) ---
+
+  Widget _buildProfileImage(String? url, double radius) {
+    bool hasUrl = url != null && url.isNotEmpty;
+
+    String? fullUrl;
+    if (hasUrl) {
+      if (url.startsWith('http')) {
+        fullUrl = url;
+      } else {
+        fullUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
+      }
+    }
+
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+      ),
+      child: ClipOval(
+        child: hasUrl
+            ? Image.network(
+                fullUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildFallbackImage(radius);
+                },
+              )
+            : _buildFallbackImage(radius),
+      ),
+    );
+  }
+
+  Widget _buildFallbackImage(double radius) {
+    const String defaultAvatarPath = '/static/images/default_avatar.png';
+    final String defaultAvatarUrl = "${Endpoints.baseUrl}$defaultAvatarPath";
+
+    return Image.network(
+      defaultAvatarUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.grey[200],
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.person,
+            size: radius * 1.2,
+            color: AppColors.blue400,
+          ),
+        );
+      },
+    );
+  }
+
+  // --- WIDGET DETAIL BIASA ---
 
   Widget _buildDetailTile(IconData icon, String title, String value) {
     return ListTile(
