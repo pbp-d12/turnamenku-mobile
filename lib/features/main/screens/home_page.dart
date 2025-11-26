@@ -31,17 +31,53 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Fungsi Fetch Data yang memperbarui State
   Future<void> _fetchData() async {
     final request = context.read<CookieRequest>();
     try {
-      final response = await request.get(Endpoints.homeData);
-      final data = HomeData.fromJson(response);
+      debugPrint("--- START FETCH DATA ---");
+
+      // 1. Ambil data Home
+      final homeResponse = await request.get(Endpoints.homeData);
+      var fetchedHomeData = HomeData.fromJson(homeResponse);
+
+      // HAPUS IF INI: if (fetchedHomeData.userData != null) {
+      // KITA GANTI JADI FORCE FETCH:
+
+      try {
+        debugPrint("Mencoba Force Fetch Profile...");
+        // Langsung tembak API Profile tanpa permisi
+        final profileResponse = await request.get(Endpoints.userProfile);
+
+        // Kalau status TRUE, berarti sebenernya LOGIN (Cookie Valid)
+        if (profileResponse['status'] == true) {
+          debugPrint("Profile SUCCESS! User sebenarnya Login.");
+
+          final Map<String, dynamic> mergedUserData = {
+            ...(fetchedHomeData.userData ?? {}), // Data lama (kalau ada)
+            ...profileResponse, // Data baru (bio, role, foto)
+          };
+
+          // Update object HomeData jadi status User
+          fetchedHomeData = HomeData(
+            status: fetchedHomeData.status,
+            ongoingTournaments: fetchedHomeData.ongoingTournaments,
+            upcomingMatches: fetchedHomeData.upcomingMatches,
+            recentThreads: fetchedHomeData.recentThreads,
+            topPredictors: fetchedHomeData.topPredictors,
+            stats: fetchedHomeData.stats,
+            userData: mergedUserData, // INI YANG BIKIN TAMPILAN JADI USER
+          );
+        } else {
+          debugPrint("Profile Fetch gagal: Status false (Beneran Guest)");
+        }
+      } catch (e) {
+        debugPrint("Gagal fetch profile (Mungkin Guest/Error 401): $e");
+      }
 
       if (mounted) {
         setState(() {
-          _homeData = data; // Simpan data terbaru
-          _isLoading = false; // Stop loading
+          _homeData = fetchedHomeData;
+          _isLoading = false;
         });
       }
     } catch (e) {
