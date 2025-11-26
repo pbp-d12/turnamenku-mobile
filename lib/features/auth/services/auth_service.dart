@@ -9,7 +9,7 @@ class AuthService {
 
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
-      final response = await request.postJson(
+      final response = await request.login(
         Endpoints.login,
         jsonEncode(<String, String>{
           'username': username,
