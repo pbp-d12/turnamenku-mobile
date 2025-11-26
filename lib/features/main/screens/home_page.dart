@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
+import 'package:turnamenku_mobile/core/widgets/profile_avatar.dart';
 import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/main/models/home_data.dart';
@@ -18,14 +19,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Variabel State untuk menyimpan data
   HomeData? _homeData;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Ambil data otomatis saat halaman dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchData();
     });
@@ -34,27 +33,20 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchData() async {
     final request = context.read<CookieRequest>();
     try {
-      debugPrint("--- START FETCH DATA ---");
-
       // 1. Ambil data Home
       final homeResponse = await request.get(Endpoints.homeData);
       var fetchedHomeData = HomeData.fromJson(homeResponse);
 
       try {
-        debugPrint("Mencoba Force Fetch Profile...");
-        // Langsung tembak API Profile tanpa permisi
+        // 2. Force Fetch Profile
         final profileResponse = await request.get(Endpoints.userProfile);
 
-        // Kalau status TRUE, berarti sebenernya LOGIN (Cookie Valid)
         if (profileResponse['status'] == true) {
-          debugPrint("Profile SUCCESS! User sebenarnya Login.");
-
           final Map<String, dynamic> mergedUserData = {
-            ...(fetchedHomeData.userData ?? {}), // Data lama (kalau ada)
-            ...profileResponse, // Data baru (bio, role, foto)
+            ...(fetchedHomeData.userData ?? {}),
+            ...profileResponse,
           };
 
-          // Update object HomeData jadi status User
           fetchedHomeData = HomeData(
             status: fetchedHomeData.status,
             ongoingTournaments: fetchedHomeData.ongoingTournaments,
@@ -62,13 +54,11 @@ class _HomePageState extends State<HomePage> {
             recentThreads: fetchedHomeData.recentThreads,
             topPredictors: fetchedHomeData.topPredictors,
             stats: fetchedHomeData.stats,
-            userData: mergedUserData, // INI YANG BIKIN TAMPILAN JADI USER
+            userData: mergedUserData,
           );
-        } else {
-          debugPrint("Profile Fetch gagal: Status false (Beneran Guest)");
         }
       } catch (e) {
-        debugPrint("Gagal fetch profile (Mungkin Guest/Error 401): $e");
+        debugPrint("Gagal fetch profile (Mungkin Guest): $e");
       }
 
       if (mounted) {
@@ -87,7 +77,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // LOGIC UTAMA:
     final displayUserData = _homeData?.userData ?? widget.userData;
     final bool isLoggedIn = displayUserData != null;
 
@@ -104,19 +93,19 @@ class _HomePageState extends State<HomePage> {
           if (isLoggedIn)
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
-              // MENGGUNAKAN WIDGET HELPER
-              child: _buildProfileImage(displayUserData['profile_picture'], 16),
+              // PENGGUNAAN WIDGET BARU (Simple!)
+              child: ProfileAvatar(
+                imageUrl: displayUserData['profile_picture'],
+                radius: 16,
+              ),
             ),
         ],
       ),
-
-      // SEKARANG DRAWER AKAN DAPAT DATA TERBARU (Bukan Loading lagi)
       drawer: LeftDrawer(userData: displayUserData),
-
       body: _isLoading && _homeData == null
-          ? const Center(child: CircularProgressIndicator()) // Loading awal
+          ? const Center(child: CircularProgressIndicator())
           : _homeData == null
-          ? _buildErrorState() // Jika gagal load
+          ? _buildErrorState()
           : RefreshIndicator(
               onRefresh: _fetchData,
               child: SingleChildScrollView(
@@ -124,54 +113,37 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. HERO SECTION
                     _buildHeroSection(isLoggedIn, displayUserData),
-
                     const SizedBox(height: 24),
-
-                    // 2. STATS
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: _buildSectionTitle("Sekilas Komunitas"),
                     ),
                     _buildCommunityStats(_homeData!.stats),
-
                     const SizedBox(height: 24),
-
-                    // 3. LIVE TURNAMEN
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Live Turnamen 🔥"),
+                      child: _buildSectionTitle("Live Turnamen"),
                     ),
                     _buildOngoingList(_homeData!.ongoingTournaments),
-
                     const SizedBox(height: 24),
-
-                    // 4. MATCHES
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Prediksi Berikutnya ⚽"),
+                      child: _buildSectionTitle("Prediksi Berikutnya"),
                     ),
                     _buildUpcomingMatches(_homeData!.upcomingMatches),
-
                     const SizedBox(height: 24),
-
-                    // 5. FORUM
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Diskusi Terbaru 💬"),
+                      child: _buildSectionTitle("Diskusi Terbaru"),
                     ),
                     _buildRecentThreads(_homeData!.recentThreads),
-
                     const SizedBox(height: 24),
-
-                    // 6. TOP PREDICTORS
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Top Predictors 👑"),
+                      child: _buildSectionTitle("Top Predictors"),
                     ),
                     _buildTopPredictors(_homeData!.topPredictors),
-
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -179,8 +151,6 @@ class _HomePageState extends State<HomePage> {
             ),
     );
   }
-
-  // --- HELPER WIDGETS ---
 
   Widget _buildErrorState() {
     return Center(
@@ -225,8 +195,8 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           if (isLoggedIn && userData != null) ...[
-            // MENGGUNAKAN WIDGET HELPER
-            _buildProfileImage(userData['profile_picture'], 40),
+            // PENGGUNAAN WIDGET BARU (Simple!)
+            ProfileAvatar(imageUrl: userData['profile_picture'], radius: 40),
 
             const SizedBox(height: 16),
             Text(
@@ -239,8 +209,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 8),
-
-            // Role Badge
             if (userData['role'] != null)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -261,9 +229,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-
             const SizedBox(height: 16),
-
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
@@ -279,7 +245,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ] else ...[
-            // VIEW GUEST
             const Text(
               "Selamat Datang di\nTURNAMENKU!",
               textAlign: TextAlign.center,
@@ -292,7 +257,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
             const Text(
-              "Platform terpusat untuk mengelola, mengikuti, dan berdiskusi seputar turnamen olahraga favorit Anda. 🏆",
+              "Platform terpusat untuk mengelola, mengikuti, dan berdiskusi seputar turnamen olahraga favorit Anda. 醇",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
@@ -333,94 +298,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- WIDGET BARU UNTUK HANDLE GAMBAR (SOLUSI) ---
-  Widget _buildProfileImage(String? url, double radius) {
-    // 1. Cek apakah URL Valid
-    bool hasUrl = url != null && url.isNotEmpty;
-
-    // 2. Konstruksi URL Lengkap (Tambahkan Base URL jika URL relatif)
-    String? fullUrl;
-    if (hasUrl) {
-      if (url.startsWith('http')) {
-        fullUrl = url;
-      } else {
-        // Handle slash di awal (jika URL dimulai dengan /media/...)
-        fullUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
-      }
-      debugPrint("Load Image URL: $fullUrl");
-    }
-
-    // 3. Menggunakan Image.network dengan ErrorBuilder
-    return Container(
-      width: radius * 2,
-      height: radius * 2,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white, // Background putih di belakang gambar
-      ),
-      child: ClipOval(
-        child: hasUrl
-            ? Image.network(
-                fullUrl!,
-                fit: BoxFit.cover,
-                // Loading Spinner
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: SizedBox(
-                      width: radius,
-                      height: radius,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    ),
-                  );
-                },
-                // KALAU ERROR, TAMPILKAN GAMBAR DEFAULT DARI SERVER
-                errorBuilder: (context, error, stackTrace) {
-                  debugPrint("GAGAL LOAD GAMBAR: $error");
-                  // Menggunakan gambar default dari server
-                  return _buildFallbackImage(radius);
-                },
-              )
-            : _buildFallbackImage(radius), // Fallback jika URL null/kosong
-      ),
-    );
-  }
-
-  // WIDGET BARU: Menggunakan NetworkImage untuk gambar default
-  Widget _buildFallbackImage(double radius) {
-    // Path gambar default dari Django (sesuai permintaan Anda)
-    const String defaultAvatarPath = '/static/images/default_avatar.png';
-    // Konstruksi URL lengkap
-    final String defaultAvatarUrl = "${Endpoints.baseUrl}$defaultAvatarPath";
-
-    debugPrint("Mencoba Load Default Image URL: $defaultAvatarUrl");
-
-    // NetworkImage untuk gambar default
-    return Image.network(
-      defaultAvatarUrl,
-      fit: BoxFit.cover,
-      // Fallback terakhir: jika NetworkImage default pun gagal (misal server down)
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint("GAGAL LOAD GAMBAR DEFAULT: $error");
-        // Kembali ke Icon sederhana
-        return Container(
-          color: Colors.grey[200],
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.person,
-            size: radius * 1.2,
-            color: AppColors.blue400,
-          ),
-        );
-      },
-    );
-  }
+  // --- HELPER WIDGETS (Stats, Lists, etc. tetap sama, hanya logic Image yang dihapus) ---
 
   Widget _buildSectionTitle(String title) {
     return Padding(

@@ -5,11 +5,12 @@ import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
 import 'package:turnamenku_mobile/features/tournaments/models/tournament.dart';
 import 'package:turnamenku_mobile/features/tournaments/widgets/tournament_card.dart';
+import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart'; // <--- BARU
 
 class TournamentListPage extends StatefulWidget {
-  final Map<String, dynamic>? userData; // <--- DITAMBAH
+  final Map<String, dynamic>? userData;
 
-  const TournamentListPage({super.key, this.userData}); // <--- DITAMBAH
+  const TournamentListPage({super.key, this.userData});
 
   @override
   State<TournamentListPage> createState() => _TournamentListPageState();
@@ -36,26 +37,36 @@ class _TournamentListPageState extends State<TournamentListPage> {
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
 
+    // CEK AKSES: Hanya Penyelenggara yang bisa membuat turnamen
+    final bool isOrganizer =
+        widget.userData != null &&
+        (widget.userData!['role'] == 'PENYELENGGARA' ||
+            widget.userData!['role'] == 'ADMIN');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tournaments'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
-      // MENGHAPUS const DAN MENGIRIM userData
       drawer: LeftDrawer(userData: widget.userData),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Placeholder for Create Tournament
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Create Tournament feature coming soon!"),
-            ),
-          );
-        },
-        tooltip: 'Create Tournament',
-        child: const Icon(Icons.add),
-      ),
+
+      // FLOATING ACTION BUTTON HANYA JIKA PENYELENGGARA
+      floatingActionButton: isOrganizer
+          ? FloatingActionButton(
+              onPressed: () {
+                // Menggunakan Custom Snackbar
+                CustomSnackbar.show(
+                  context,
+                  "Create Tournament feature coming soon!",
+                  SnackbarStatus.info, // Menggunakan status Info
+                );
+              },
+              tooltip: 'Create Tournament',
+              child: const Icon(Icons.add),
+            )
+          : null, // Jika bukan organizer, tombol disembunyikan
+
       body: FutureBuilder(
         future: fetchTournaments(request),
         builder: (context, AsyncSnapshot snapshot) {
