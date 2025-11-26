@@ -7,7 +7,8 @@ import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/auth/services/auth_service.dart';
 import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
-import 'package:turnamenku_mobile/features/main/screens/profile_page.dart'; // Import ini sekarang aman
+import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
+import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
 
 class LeftDrawer extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -109,6 +110,21 @@ class LeftDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               // TODO: Navigasi Teams
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.timeline_rounded, // Icon yang cocok untuk prediksi
+            title: "Predictions",
+            onTap: () {
+              // Tutup drawer lalu pindah halaman
+              // Menggunakan pushReplacement agar stack navigasi tidak menumpuk
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  // Kirim userData agar drawer di halaman selanjutnya tetap konsisten
+                  builder: (context) => PredictionPage(userData: userData),
+                ),
+              );
             },
           ),
 
