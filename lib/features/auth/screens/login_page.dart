@@ -171,14 +171,15 @@ class _LoginPageState extends State<LoginPage> {
                                         'profile_picture': '',
                                       };
 
-                                      Navigator.pushReplacement(
+                                      Navigator.pushAndRemoveUntil(
                                         context,
-                                        // PASSING KE HOME DENGAN PARAMETER BARU
                                         MaterialPageRoute(
                                           builder: (context) => HomePage(
                                             userData: simpleUserData,
                                           ),
                                         ),
+                                        (Route<dynamic> route) =>
+                                            false, // Ini menghapus SEMUA halaman di bawah HomePage
                                       );
                                       CustomSnackbar.show(
                                         context,

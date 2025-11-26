@@ -16,11 +16,30 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
+  // KOREKSI: Role choices disamakan dengan nilai (value) di Django models
+  static const List<Map<String, String>> roleChoices = [
+    {'value': 'PEMAIN', 'label': 'Pemain'}, // Disesuaikan dengan default model
+    {'value': 'PENYELENGGARA', 'label': 'Penyelenggara'},
+  ];
+
   final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfController = TextEditingController();
+
+  // Default role disetel ke 'PEMAIN'
+  String _selectedRole = roleChoices.first['value']!;
   bool _isLoading = false;
   bool _isObscure = true;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _passwordConfController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +80,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 32),
 
+                    // Username
                     _buildLabel("Username"),
                     TextFormField(
                       controller: _usernameController,
@@ -81,6 +101,52 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Email
+                    _buildLabel("Email"),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: _inputDecoration(hint: "Masukkan email"),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Email wajib diisi.';
+                        }
+                        // Validasi format email dasar
+                        if (!RegExp(
+                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                        ).hasMatch(value)) {
+                          return 'Masukkan format email yang valid.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Role Dropdown
+                    _buildLabel("Daftar sebagai"),
+                    DropdownButtonFormField<String>(
+                      decoration: _inputDecoration(),
+                      value: _selectedRole,
+                      items: roleChoices.map((Map<String, String> choice) {
+                        return DropdownMenuItem<String>(
+                          value: choice['value'],
+                          child: Text(choice['label']!),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedRole = newValue;
+                          });
+                        }
+                      },
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Pilih peran akun.'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
                     _buildLabel("Password"),
                     TextFormField(
                       controller: _passwordController,
@@ -101,6 +167,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Konfirmasi Password
                     _buildLabel("Konfirmasi Password"),
                     TextFormField(
                       controller: _passwordConfController,
@@ -142,6 +209,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     _usernameController.text,
                                     _passwordController.text,
                                     _passwordConfController.text,
+                                    _emailController.text,
+                                    _selectedRole,
                                   );
                                   setState(() => _isLoading = false);
 
@@ -246,6 +315,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   InputDecoration _inputDecoration({bool isPassword = false, String? hint}) {
+    // ... (Logika _inputDecoration tetap sama)
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
