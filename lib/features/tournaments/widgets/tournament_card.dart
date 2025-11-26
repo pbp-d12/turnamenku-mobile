@@ -16,17 +16,12 @@ class TournamentCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          // Placeholder for navigation to detail page
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text("Detail for ${tournament.name} coming soon!"))
-           );
-           // UNCOMMENT THIS LATER when we build the detail page:
-           // Navigator.push(
-           //   context,
-           //   MaterialPageRoute(
-           //     builder: (context) => TournamentDetailPage(tournamentId: tournament.id),
-           //   ),
-           // );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TournamentDetailPage(tournamentId: tournament.id),
+            ),
+          );
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
