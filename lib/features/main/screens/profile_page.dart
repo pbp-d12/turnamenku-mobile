@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:turnamenku_mobile/core/environments/endpoints.dart'; // DIPERLUKAN UNTUK IMAGE HELPER
+import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
-import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart'; // BARU: Custom Snackbar
+import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
+import 'package:turnamenku_mobile/core/widgets/profile_avatar.dart'; // <--- IMPORT BARU
 
 class ProfilePage extends StatefulWidget {
-  // FINAL STRING USERNAME SUDAH DIHAPUS (Sesuai permintaan sebelumnya)
   const ProfilePage({super.key});
 
   @override
@@ -17,7 +17,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
-  String? _errorMessage; // Tetap dipakai untuk tampilan error di body
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -41,14 +41,12 @@ class _ProfilePageState extends State<ProfilePage> {
           _errorMessage = message;
           _isLoading = false;
         });
-        // BARU: Tampilkan Custom Snackbar Error
         if (context.mounted) {
           CustomSnackbar.show(context, message, SnackbarStatus.error);
         }
       }
     } catch (e) {
       const String message = "Terjadi kesalahan koneksi.";
-      // BARU: Tampilkan Custom Snackbar Error
       if (context.mounted) {
         CustomSnackbar.show(context, message, SnackbarStatus.error);
       }
@@ -80,7 +78,6 @@ class _ProfilePageState extends State<ProfilePage> {
           "Profil Saya",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        // ACTIONS (Tombol Refresh) DIHAPUS SESUAI PERMINTAAN
       ),
       drawer: LeftDrawer(userData: drawerUserData),
       body: _isLoading
@@ -98,7 +95,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: fetchProfile, // Tombol Coba Lagi tetap ada
+                    onPressed: fetchProfile,
                     child: const Text("Coba Lagi"),
                   ),
                 ],
@@ -119,7 +116,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          // Foto Profil (MENGGUNAKAN HELPER IMAGE YANG ROBUST)
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
@@ -128,15 +124,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 width: 3,
                               ),
                             ),
-                            // PENGGANTIAN DENGAN HELPER IMAGE
-                            child: _buildProfileImage(
-                              _profileData!['profile_picture'],
-                              50,
+                            // MENGGUNAKAN WIDGET BARU
+                            child: ProfileAvatar(
+                              imageUrl: _profileData!['profile_picture'],
+                              radius: 50,
                             ),
                           ),
                           const SizedBox(height: 16),
 
-                          // Username
                           Text(
                             _profileData!['username'] ?? '-',
                             style: const TextStyle(
@@ -146,7 +141,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
 
-                          // Role Badge
                           if (_profileData!['role'] != null)
                             Container(
                               margin: const EdgeInsets.only(top: 8),
@@ -174,7 +168,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   const SizedBox(height: 24),
 
-                  // CARD DETAIL INFO
                   Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(
@@ -212,7 +205,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   const SizedBox(height: 24),
 
-                  // TOMBOL EDIT (Placeholder)
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -227,7 +219,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                       onPressed: () {
-                        // BARU: Menggunakan Custom Snackbar Info
                         CustomSnackbar.show(
                           context,
                           "Fitur Edit Profil segera hadir!",
@@ -241,64 +232,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
     );
   }
-
-  // --- WIDGET HELPER PROFILE IMAGE (Disalin dari left_drawer.dart/home_page.dart) ---
-
-  Widget _buildProfileImage(String? url, double radius) {
-    bool hasUrl = url != null && url.isNotEmpty;
-
-    String? fullUrl;
-    if (hasUrl) {
-      if (url.startsWith('http')) {
-        fullUrl = url;
-      } else {
-        fullUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
-      }
-    }
-
-    return Container(
-      width: radius * 2,
-      height: radius * 2,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-      ),
-      child: ClipOval(
-        child: hasUrl
-            ? Image.network(
-                fullUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildFallbackImage(radius);
-                },
-              )
-            : _buildFallbackImage(radius),
-      ),
-    );
-  }
-
-  Widget _buildFallbackImage(double radius) {
-    const String defaultAvatarPath = '/static/images/default_avatar.png';
-    final String defaultAvatarUrl = "${Endpoints.baseUrl}$defaultAvatarPath";
-
-    return Image.network(
-      defaultAvatarUrl,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: Colors.grey[200],
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.person,
-            size: radius * 1.2,
-            color: AppColors.blue400,
-          ),
-        );
-      },
-    );
-  }
-
-  // --- WIDGET DETAIL BIASA ---
 
   Widget _buildDetailTile(IconData icon, String title, String value) {
     return ListTile(
