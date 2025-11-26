@@ -60,7 +60,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Username Field
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -92,7 +91,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Password Field
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -135,7 +133,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Tombol Login
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -160,12 +157,8 @@ class _LoginPageState extends State<LoginPage> {
 
                                   if (context.mounted) {
                                     if (response['status'] == true) {
-                                      // --- CONSTRUCT USER DATA ---
-                                      // Buat data sementara untuk dikirim ke Home
-                                      // (Nanti Home akan fetch data lengkap lagi dari API)
                                       Map<String, dynamic> simpleUserData = {
                                         'username': response['username'],
-                                        // Placeholder sampai API home selesai loading
                                         'role': 'Loading...',
                                         'email': '',
                                         'profile_picture': '',
@@ -178,8 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                                             userData: simpleUserData,
                                           ),
                                         ),
-                                        (Route<dynamic> route) =>
-                                            false, // Ini menghapus SEMUA halaman di bawah HomePage
+                                        (Route<dynamic> route) => false,
                                       );
                                       CustomSnackbar.show(
                                         context,

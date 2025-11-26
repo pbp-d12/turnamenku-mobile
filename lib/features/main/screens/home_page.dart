@@ -33,12 +33,10 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchData() async {
     final request = context.read<CookieRequest>();
     try {
-      // 1. Ambil data Home
       final homeResponse = await request.get(Endpoints.homeData);
       var fetchedHomeData = HomeData.fromJson(homeResponse);
 
       try {
-        // 2. Force Fetch Profile
         final profileResponse = await request.get(Endpoints.userProfile);
 
         if (profileResponse['status'] == true) {
@@ -89,17 +87,6 @@ class _HomePageState extends State<HomePage> {
           "Turnamenku",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: [
-          if (isLoggedIn)
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              // PENGGUNAAN WIDGET BARU (Simple!)
-              child: ProfileAvatar(
-                imageUrl: displayUserData['profile_picture'],
-                radius: 16,
-              ),
-            ),
-        ],
       ),
       drawer: LeftDrawer(userData: displayUserData),
       body: _isLoading && _homeData == null
@@ -195,7 +182,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           if (isLoggedIn && userData != null) ...[
-            // PENGGUNAAN WIDGET BARU (Simple!)
             ProfileAvatar(imageUrl: userData['profile_picture'], radius: 40),
 
             const SizedBox(height: 16),
@@ -257,7 +243,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
             const Text(
-              "Platform terpusat untuk mengelola, mengikuti, dan berdiskusi seputar turnamen olahraga favorit Anda. 醇",
+              "Platform terpusat untuk mengelola, mengikuti, dan berdiskusi seputar turnamen olahraga favorit Anda.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
@@ -297,8 +283,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // --- HELPER WIDGETS (Stats, Lists, etc. tetap sama, hanya logic Image yang dihapus) ---
 
   Widget _buildSectionTitle(String title) {
     return Padding(
