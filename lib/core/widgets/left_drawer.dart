@@ -7,8 +7,8 @@ import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/auth/services/auth_service.dart';
 import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
-import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
-import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
+import 'package:turnamenku_mobile/features/main/screens/profile_page.dart'; 
+import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
 
 class LeftDrawer extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -100,8 +100,13 @@ class LeftDrawer extends StatelessWidget {
             icon: Icons.emoji_events_rounded,
             title: "Tournaments",
             onTap: () {
-              Navigator.pop(context);
-              // TODO: Navigasi Tournament
+              // Replace the current screen with the Tournament List
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TournamentListPage(),
+                ),
+              );
             },
           ),
           _buildDrawerItem(
