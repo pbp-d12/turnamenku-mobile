@@ -14,7 +14,6 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Cek validitas URL
     bool hasUrl = imageUrl != null && imageUrl!.isNotEmpty;
     String? fullUrl;
 
@@ -22,7 +21,6 @@ class ProfileAvatar extends StatelessWidget {
       if (imageUrl!.startsWith('http')) {
         fullUrl = imageUrl;
       } else {
-        // Tambahkan Base URL jika relative path (misal: /media/...)
         fullUrl =
             "${Endpoints.baseUrl}${imageUrl!.startsWith('/') ? '' : '/'}$imageUrl";
       }
@@ -40,7 +38,6 @@ class ProfileAvatar extends StatelessWidget {
             ? Image.network(
                 fullUrl!,
                 fit: BoxFit.cover,
-                // Loading Builder (Spinner saat gambar loading)
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return Center(
@@ -57,19 +54,16 @@ class ProfileAvatar extends StatelessWidget {
                     ),
                   );
                 },
-                // Error Builder -> Fallback ke Default Image
                 errorBuilder: (context, error, stackTrace) {
                   return _buildFallbackImage();
                 },
               )
-            : _buildFallbackImage(), // Null URL -> Fallback
+            : _buildFallbackImage(),
       ),
     );
   }
 
-  // Helper internal untuk fallback image
   Widget _buildFallbackImage() {
-    // Path gambar default dari Django
     const String defaultAvatarPath = '/static/images/default_avatar.png';
     final String defaultAvatarUrl = "${Endpoints.baseUrl}$defaultAvatarPath";
 
@@ -77,7 +71,6 @@ class ProfileAvatar extends StatelessWidget {
       defaultAvatarUrl,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
-        // Fallback terakhir: Icon Lokal (Jika server down/gambar default hilang)
         return Container(
           color: Colors.grey[200],
           alignment: Alignment.center,
