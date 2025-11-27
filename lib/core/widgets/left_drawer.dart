@@ -169,34 +169,19 @@ class LeftDrawer extends StatelessWidget {
               );
             },
           ),
-          _buildDrawerItem(
-            icon: Icons.sports_soccer_rounded,
+           _buildDrawerItem(
+            icon: Icons.sports_soccer_rounded, 
             title: "Predictions",
             onTap: () {
-              Navigator.pop(context);
-              CustomSnackbar.show(
-                context,
-                "Fitur Predictions belum tersedia.",
-                SnackbarStatus.info,
-              );
-            },
-          ),
-          _buildDrawerItem(
-            icon: Icons.timeline_rounded, // Icon yang cocok untuk prediksi
-            title: "Predictions",
-            onTap: () {
-              // Tutup drawer lalu pindah halaman
-              // Menggunakan pushReplacement agar stack navigasi tidak menumpuk
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  // Kirim userData agar drawer di halaman selanjutnya tetap konsisten
                   builder: (context) => PredictionPage(userData: userData),
                 ),
               );
             },
           ),
-
+        
           const Divider(height: 32, thickness: 1),
 
           if (isLoggedIn) ...[
