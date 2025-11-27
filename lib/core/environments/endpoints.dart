@@ -8,6 +8,7 @@ class Endpoints {
   static const String logout = '$baseUrl/auth/logout/';
   static const String userProfile = '$baseUrl/api/profile/';
   static const String updateProfile = '$baseUrl/api/profile/update/';
+  static const String searchProfiles = '$baseUrl/api/search/';
 
   //tournaments endpoints
   static const String tournaments = '$baseUrl/tournaments/json/';
@@ -22,12 +23,17 @@ class Endpoints {
   static String checkCaptainStatus(int id) =>
       '$baseUrl/tournaments/captain_status/$id/';
 
-  // Predictions endpoints 
+  // Predictions endpoints
   static const String predictionMatches = '$baseUrl/predictions/api/matches/';
-  static const String predictionLeaderboard = '$baseUrl/predictions/api/leaderboard/';
+  static const String predictionLeaderboard =
+      '$baseUrl/predictions/api/leaderboard/';
   static const String predictionSubmit = '$baseUrl/predictions/api/submit/';
-  static const String predictionFormData = '$baseUrl/predictions/api/get-form-data/';
-  static const String predictionCreateMatch = '$baseUrl/predictions/api/create-match/';
-  static const String predictionEditScore = '$baseUrl/predictions/api/edit-score/';
-  static const String predictionDelete = '$baseUrl/predictions/api/delete-prediction/';
+  static const String predictionFormData =
+      '$baseUrl/predictions/api/get-form-data/';
+  static const String predictionCreateMatch =
+      '$baseUrl/predictions/api/create-match/';
+  static const String predictionEditScore =
+      '$baseUrl/predictions/api/edit-score/';
+  static const String predictionDelete =
+      '$baseUrl/predictions/api/delete-prediction/';
 }
