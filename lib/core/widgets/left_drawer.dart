@@ -9,6 +9,7 @@ import 'package:turnamenku_mobile/features/auth/services/auth_service.dart';
 import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
 import 'package:turnamenku_mobile/features/main/screens/profile_page.dart'; 
 import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
+import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
 
 class LeftDrawer extends StatelessWidget {
   final Map<String, dynamic>? userData;
