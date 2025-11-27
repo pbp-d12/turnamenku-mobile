@@ -8,6 +8,7 @@ import 'package:turnamenku_mobile/core/widgets/profile_avatar.dart';
 import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/main/models/home_data.dart';
+import 'package:turnamenku_mobile/features/main/screens/user_search_delegate.dart';
 
 class HomePage extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -87,6 +88,15 @@ class _HomePageState extends State<HomePage> {
           "Turnamenku",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () {
+              showSearch(context: context, delegate: UserSearchDelegate());
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       drawer: LeftDrawer(userData: displayUserData),
       body: _isLoading && _homeData == null
