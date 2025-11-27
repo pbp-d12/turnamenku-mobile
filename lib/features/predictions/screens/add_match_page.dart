@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 
 class AddMatchPage extends StatefulWidget {
   const AddMatchPage({super.key});
@@ -13,7 +14,6 @@ class AddMatchPage extends StatefulWidget {
 class _AddMatchPageState extends State<AddMatchPage> {
   final _formKey = GlobalKey<FormState>();
   
-  final String baseUrl = "http://127.0.0.1:8000";
 
   // Form Fields
   String? _selectedTournamentId;
@@ -41,7 +41,7 @@ class _AddMatchPageState extends State<AddMatchPage> {
   // Fetch data Turnamen dan Tim untuk Dropdown
   Future<void> _fetchFormData(CookieRequest request) async {
     try {
-      final response = await request.get('$baseUrl/predictions/api/get-form-data/');
+      final response = await request.get(Endpoints.predictionFormData);
       
       // Debug: Cek apa yang diterima dari server
       print("Data diterima: $response");
@@ -93,7 +93,7 @@ class _AddMatchPageState extends State<AddMatchPage> {
   Future<void> _submitMatch(CookieRequest request) async {
     if (_formKey.currentState!.validate() && _selectedDate != null) {
       final response = await request.postJson(
-        '$baseUrl/predictions/api/create-match/', 
+        Endpoints.predictionCreateMatch, 
         jsonEncode({
           'tournament': _selectedTournamentId,
           'home_team': _selectedHomeTeamId,

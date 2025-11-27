@@ -21,4 +21,11 @@ class Endpoints {
       '$baseUrl/tournaments/$id/deregister_team/';
   static String checkCaptainStatus(int id) =>
       '$baseUrl/tournaments/captain_status/$id/';
+
+  // Predictions endpoints 
+  static const String predictionMatches = '$baseUrl/predictions/api/matches/';
+  static const String predictionLeaderboard = '$baseUrl/predictions/api/leaderboard/';
+  static const String predictionSubmit = '$baseUrl/predictions/api/submit/';
+  static const String predictionFormData = '$baseUrl/predictions/api/get-form-data/';
+  static const String predictionCreateMatch = '$baseUrl/predictions/api/create-match/';
 }
