@@ -28,4 +28,6 @@ class Endpoints {
   static const String predictionSubmit = '$baseUrl/predictions/api/submit/';
   static const String predictionFormData = '$baseUrl/predictions/api/get-form-data/';
   static const String predictionCreateMatch = '$baseUrl/predictions/api/create-match/';
+  static const String predictionEditScore = '$baseUrl/predictions/api/edit-score/';
+  static const String predictionDelete = '$baseUrl/predictions/api/delete-prediction/';
 }
