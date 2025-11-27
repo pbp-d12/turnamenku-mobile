@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart';
 import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/auth/services/auth_service.dart';
 import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
-import 'package:turnamenku_mobile/features/main/screens/profile_page.dart'; 
+import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
 import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
 
@@ -21,74 +22,109 @@ class LeftDrawer extends StatelessWidget {
     final request = context.watch<CookieRequest>();
     final bool isLoggedIn = userData != null;
 
-    // Setup data tampilan
     String displayName = isLoggedIn
         ? (userData!['username'] ?? "User")
         : "Tamu";
     String displayEmail = isLoggedIn
-        ? (userData!['email'] ?? "Member")
+        ? (userData!['email'] ?? "")
         : "Silakan Login";
     String displayRole = isLoggedIn ? (userData!['role'] ?? "") : "";
     String? profilePicUrl = isLoggedIn ? userData!['profile_picture'] : null;
 
+    final double topPadding = MediaQuery.of(context).padding.top;
+
     return Drawer(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // HEADER
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: AppColors.blue400),
-            accountName: Row(
+          Container(
+            color: AppColors.blue400,
+            padding: EdgeInsets.only(
+              top: topPadding + 24,
+              bottom: 24,
+              left: 24,
+              right: 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  displayName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                const Text(
+                  "TurnamenKu",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                if (displayRole.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    _buildProfileImage(profilePicUrl, 24),
+                    const SizedBox(width: 16),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (isLoggedIn && displayRole.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                displayRole.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ] else
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                displayEmail,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      displayRole.toUpperCase(),
-                      style: const TextStyle(fontSize: 10, color: Colors.white),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ],
-            ),
-            accountEmail: Text(
-              displayEmail,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: AppColors.white,
-              backgroundImage:
-                  (profilePicUrl != null && profilePicUrl.isNotEmpty)
-                  ? NetworkImage(profilePicUrl)
-                  : null,
-              child: (profilePicUrl == null || profilePicUrl.isEmpty)
-                  ? const Icon(Icons.person, size: 40, color: AppColors.blue300)
-                  : null,
             ),
           ),
 
-          // MENU ITEMS
+          const SizedBox(height: 8),
+
           _buildDrawerItem(
             icon: Icons.home_rounded,
             title: "Home",
             onTap: () {
-              // Navigasi ke Home dengan membawa userData yang ada
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -101,11 +137,10 @@ class LeftDrawer extends StatelessWidget {
             icon: Icons.emoji_events_rounded,
             title: "Tournaments",
             onTap: () {
-              // Replace the current screen with the Tournament List
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const TournamentListPage(),
+                  builder: (context) => TournamentListPage(userData: userData),
                 ),
               );
             },
@@ -115,7 +150,35 @@ class LeftDrawer extends StatelessWidget {
             title: "Teams",
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigasi Teams
+              CustomSnackbar.show(
+                context,
+                "Fitur Teams belum tersedia.",
+                SnackbarStatus.info,
+              );
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.forum_rounded,
+            title: "Forums",
+            onTap: () {
+              Navigator.pop(context);
+              CustomSnackbar.show(
+                context,
+                "Fitur Forums belum tersedia.",
+                SnackbarStatus.info,
+              );
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.sports_soccer_rounded,
+            title: "Predictions",
+            onTap: () {
+              Navigator.pop(context);
+              CustomSnackbar.show(
+                context,
+                "Fitur Predictions belum tersedia.",
+                SnackbarStatus.info,
+              );
             },
           ),
           _buildDrawerItem(
@@ -134,7 +197,7 @@ class LeftDrawer extends StatelessWidget {
             },
           ),
 
-          const Divider(),
+          const Divider(height: 32, thickness: 1),
 
           if (isLoggedIn) ...[
             _buildDrawerItem(
@@ -143,14 +206,12 @@ class LeftDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfilePage(username: displayName),
-                  ),
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
                 );
               },
             ),
             _buildDrawerItem(
-              icon: Icons.logout,
+              icon: Icons.logout_rounded,
               title: "Logout",
               iconColor: Colors.redAccent,
               textColor: Colors.redAccent,
@@ -163,7 +224,6 @@ class LeftDrawer extends StatelessWidget {
                       "Berhasil logout!",
                       SnackbarStatus.success,
                     );
-                    // Logout -> Ke Home sebagai Guest (userData: null)
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -174,11 +234,9 @@ class LeftDrawer extends StatelessWidget {
                 }
               },
             ),
-          ],
-
-          if (!isLoggedIn) ...[
+          ] else ...[
             _buildDrawerItem(
-              icon: Icons.login,
+              icon: Icons.login_rounded,
               title: "Login",
               onTap: () => Navigator.push(
                 context,
@@ -186,7 +244,7 @@ class LeftDrawer extends StatelessWidget {
               ),
             ),
             _buildDrawerItem(
-              icon: Icons.app_registration,
+              icon: Icons.app_registration_rounded,
               title: "Register",
               onTap: () => Navigator.push(
                 context,
@@ -194,6 +252,8 @@ class LeftDrawer extends StatelessWidget {
               ),
             ),
           ],
+
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -207,15 +267,65 @@ class LeftDrawer extends StatelessWidget {
     Color? textColor,
   }) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.blue400),
+      leading: Icon(icon, color: iconColor ?? AppColors.textSecondary),
       title: Text(
         title,
         style: TextStyle(
           color: textColor ?? AppColors.textPrimary,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
         ),
       ),
       onTap: onTap,
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+    );
+  }
+
+  Widget _buildProfileImage(String? url, double radius) {
+    String finalUrl;
+    if (url != null && url.isNotEmpty) {
+      if (url.startsWith('http')) {
+        finalUrl = url;
+      } else {
+        finalUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
+      }
+    } else {
+      finalUrl = "${Endpoints.baseUrl}/static/images/default_avatar.png";
+    }
+
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        color: Colors.black,
+      ),
+      child: ClipOval(
+        child: Image.network(
+          finalUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: Colors.black,
+              child: Icon(Icons.person, size: radius, color: Colors.white),
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              color: Colors.black,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

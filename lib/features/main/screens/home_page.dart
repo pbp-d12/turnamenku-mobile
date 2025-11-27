@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
+import 'package:turnamenku_mobile/core/widgets/profile_avatar.dart';
 import 'package:turnamenku_mobile/features/auth/screens/login_page.dart';
 import 'package:turnamenku_mobile/features/auth/screens/register_page.dart';
 import 'package:turnamenku_mobile/features/main/models/home_data.dart';
@@ -18,14 +19,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Variabel State untuk menyimpan data
   HomeData? _homeData;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Ambil data otomatis saat halaman dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchData();
     });
@@ -34,30 +33,18 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchData() async {
     final request = context.read<CookieRequest>();
     try {
-      debugPrint("--- START FETCH DATA ---");
-
-      // 1. Ambil data Home
       final homeResponse = await request.get(Endpoints.homeData);
       var fetchedHomeData = HomeData.fromJson(homeResponse);
 
-      // HAPUS IF INI: if (fetchedHomeData.userData != null) {
-      // KITA GANTI JADI FORCE FETCH:
-
       try {
-        debugPrint("Mencoba Force Fetch Profile...");
-        // Langsung tembak API Profile tanpa permisi
         final profileResponse = await request.get(Endpoints.userProfile);
 
-        // Kalau status TRUE, berarti sebenernya LOGIN (Cookie Valid)
         if (profileResponse['status'] == true) {
-          debugPrint("Profile SUCCESS! User sebenarnya Login.");
-
           final Map<String, dynamic> mergedUserData = {
-            ...(fetchedHomeData.userData ?? {}), // Data lama (kalau ada)
-            ...profileResponse, // Data baru (bio, role, foto)
+            ...(fetchedHomeData.userData ?? {}),
+            ...profileResponse,
           };
 
-          // Update object HomeData jadi status User
           fetchedHomeData = HomeData(
             status: fetchedHomeData.status,
             ongoingTournaments: fetchedHomeData.ongoingTournaments,
@@ -65,13 +52,11 @@ class _HomePageState extends State<HomePage> {
             recentThreads: fetchedHomeData.recentThreads,
             topPredictors: fetchedHomeData.topPredictors,
             stats: fetchedHomeData.stats,
-            userData: mergedUserData, // INI YANG BIKIN TAMPILAN JADI USER
+            userData: mergedUserData,
           );
-        } else {
-          debugPrint("Profile Fetch gagal: Status false (Beneran Guest)");
         }
       } catch (e) {
-        debugPrint("Gagal fetch profile (Mungkin Guest/Error 401): $e");
+        debugPrint("Gagal fetch profile (Mungkin Guest): $e");
       }
 
       if (mounted) {
@@ -90,9 +75,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // LOGIC UTAMA:
-    // Gunakan _homeData (dari API) jika ada.
-    // Jika belum ada, gunakan widget.userData (dari Login Page / Loading state).
     final displayUserData = _homeData?.userData ?? widget.userData;
     final bool isLoggedIn = displayUserData != null;
 
@@ -105,39 +87,12 @@ class _HomePageState extends State<HomePage> {
           "Turnamenku",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: [
-          if (isLoggedIn)
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white,
-                backgroundImage:
-                    (displayUserData['profile_picture'] != null &&
-                        displayUserData['profile_picture'] != "")
-                    ? NetworkImage(displayUserData['profile_picture'])
-                    : null,
-                child:
-                    (displayUserData['profile_picture'] == null ||
-                        displayUserData['profile_picture'] == "")
-                    ? const Icon(
-                        Icons.person,
-                        size: 20,
-                        color: AppColors.blue400,
-                      )
-                    : null,
-              ),
-            ),
-        ],
       ),
-
-      // SEKARANG DRAWER AKAN DAPAT DATA TERBARU (Bukan Loading lagi)
       drawer: LeftDrawer(userData: displayUserData),
-
       body: _isLoading && _homeData == null
-          ? const Center(child: CircularProgressIndicator()) // Loading awal
+          ? const Center(child: CircularProgressIndicator())
           : _homeData == null
-          ? _buildErrorState() // Jika gagal load
+          ? _buildErrorState()
           : RefreshIndicator(
               onRefresh: _fetchData,
               child: SingleChildScrollView(
@@ -145,54 +100,37 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. HERO SECTION
                     _buildHeroSection(isLoggedIn, displayUserData),
-
                     const SizedBox(height: 24),
-
-                    // 2. STATS
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: _buildSectionTitle("Sekilas Komunitas"),
                     ),
                     _buildCommunityStats(_homeData!.stats),
-
                     const SizedBox(height: 24),
-
-                    // 3. LIVE TURNAMEN
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Live Turnamen 🔥"),
+                      child: _buildSectionTitle("Live Turnamen"),
                     ),
                     _buildOngoingList(_homeData!.ongoingTournaments),
-
                     const SizedBox(height: 24),
-
-                    // 4. MATCHES
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Prediksi Berikutnya ⚽"),
+                      child: _buildSectionTitle("Prediksi Berikutnya"),
                     ),
                     _buildUpcomingMatches(_homeData!.upcomingMatches),
-
                     const SizedBox(height: 24),
-
-                    // 5. FORUM
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Diskusi Terbaru 💬"),
+                      child: _buildSectionTitle("Diskusi Terbaru"),
                     ),
                     _buildRecentThreads(_homeData!.recentThreads),
-
                     const SizedBox(height: 24),
-
-                    // 6. TOP PREDICTORS
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildSectionTitle("Top Predictors 👑"),
+                      child: _buildSectionTitle("Top Predictors"),
                     ),
                     _buildTopPredictors(_homeData!.topPredictors),
-
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -200,8 +138,6 @@ class _HomePageState extends State<HomePage> {
             ),
     );
   }
-
-  // --- HELPER WIDGETS ---
 
   Widget _buildErrorState() {
     return Center(
@@ -246,21 +182,8 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           if (isLoggedIn && userData != null) ...[
-            // VIEW USER
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              backgroundImage:
-                  (userData['profile_picture'] != null &&
-                      userData['profile_picture'] != "")
-                  ? NetworkImage(userData['profile_picture'])
-                  : null,
-              child:
-                  (userData['profile_picture'] == null ||
-                      userData['profile_picture'] == "")
-                  ? const Icon(Icons.person, size: 40, color: AppColors.blue300)
-                  : null,
-            ),
+            ProfileAvatar(imageUrl: userData['profile_picture'], radius: 40),
+
             const SizedBox(height: 16),
             Text(
               "Halo, ${userData['username']}!",
@@ -272,8 +195,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 8),
-
-            // Role Badge
             if (userData['role'] != null)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -294,9 +215,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-
             const SizedBox(height: 16),
-
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
@@ -312,7 +231,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ] else ...[
-            // VIEW GUEST
             const Text(
               "Selamat Datang di\nTURNAMENKU!",
               textAlign: TextAlign.center,
@@ -325,7 +243,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
             const Text(
-              "Platform terpusat untuk mengelola, mengikuti, dan berdiskusi seputar turnamen olahraga favorit Anda. 🏆",
+              "Platform terpusat untuk mengelola, mengikuti, dan berdiskusi seputar turnamen olahraga favorit Anda.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),

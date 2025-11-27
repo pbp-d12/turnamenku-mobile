@@ -26,13 +26,17 @@ class AuthService {
     String username,
     String password,
     String passwordConf,
+    String email,
+    String role,
   ) async {
     final response = await request.postJson(
       Endpoints.register,
       jsonEncode(<String, String>{
         'username': username,
+        'email': email,
         'password': password,
         'password_confirmation': passwordConf,
+        'role': role,
       }),
     );
     return response;

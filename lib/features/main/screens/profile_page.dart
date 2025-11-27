@@ -4,20 +4,21 @@ import 'package:provider/provider.dart';
 import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
+import 'package:turnamenku_mobile/features/main/screens/edit_profile_page.dart';
 
 class ProfilePage extends StatefulWidget {
-  final String username;
+  final int? userId;
 
-  const ProfilePage({super.key, required this.username});
+  const ProfilePage({super.key, this.userId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  Map<String, dynamic>? _profileData;
-  bool _isLoading = true;
-  String? _errorMessage;
+  Map<String, dynamic>? profileData;
+  bool isLoading = true;
+  String errorMessage = "";
 
   @override
   void initState() {
@@ -27,260 +28,276 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> fetchProfile() async {
     final request = context.read<CookieRequest>();
-    try {
-      final response = await request.get(Endpoints.userProfile);
 
-      // Cek status dari response JSON backend
-      if (response['status'] == true) {
+    String url = Endpoints.userProfile;
+    if (widget.userId != null) {
+      url += '?id=${widget.userId}';
+    }
+
+    try {
+      final response = await request.get(url);
+
+      if (response['status'] == 'success') {
         setState(() {
-          _profileData = response;
-          _isLoading = false;
+          profileData = response['data'];
+          isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = response['message'] ?? "Gagal mengambil data";
-          _isLoading = false;
+          errorMessage = response['message'] ?? "Gagal mengambil data.";
+          isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = "Terjadi kesalahan koneksi.";
-        _isLoading = false;
+        errorMessage = "Terjadi kesalahan koneksi.";
+        isLoading = false;
       });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Siapkan data untuk Drawer biar menu-nya sinkron
-    Map<String, dynamic>? drawerUserData;
-    if (_profileData != null) {
-      drawerUserData = {
-        'username': _profileData!['username'],
-        'email': _profileData!['email'],
-        'role': _profileData!['role'],
-        'profile_picture': _profileData!['profile_picture'],
-      };
+  Widget _buildProfileImage(String? url, double radius) {
+    String finalUrl;
+    if (url != null && url.isNotEmpty) {
+      if (url.startsWith('http')) {
+        finalUrl = url;
+      } else {
+        finalUrl = "${Endpoints.baseUrl}${url.startsWith('/') ? '' : '/'}$url";
+      }
+    } else {
+      finalUrl = "${Endpoints.baseUrl}/static/images/default_avatar.png";
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.blue50,
-      appBar: AppBar(
-        backgroundColor: AppColors.blue400,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          "Profil Saya",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() => _isLoading = true);
-              fetchProfile();
-            },
-          ),
-        ],
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.blue100, width: 4),
+        color: Colors.black,
       ),
-      drawer: LeftDrawer(
-        userData: drawerUserData,
-      ), // Pass data update ke Drawer
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: fetchProfile,
-                    child: const Text("Coba Lagi"),
-                  ),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  // CARD UTAMA (FOTO & NAMA)
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        children: [
-                          // Foto Profil
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.blue400,
-                                width: 3,
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 50,
-                              backgroundColor: AppColors.blue50,
-                              backgroundImage:
-                                  (_profileData!['profile_picture'] != null &&
-                                      _profileData!['profile_picture'] != "")
-                                  ? NetworkImage(
-                                      _profileData!['profile_picture'],
-                                    )
-                                  : null,
-                              child:
-                                  (_profileData!['profile_picture'] == null ||
-                                      _profileData!['profile_picture'] == "")
-                                  ? const Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: AppColors.blue300,
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Username
-                          Text(
-                            _profileData!['username'] ?? '-',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-
-                          // Role Badge
-                          if (_profileData!['role'] != null)
-                            Container(
-                              margin: const EdgeInsets.only(top: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.blue400,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                _profileData!['role'].toString().toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // CARD DETAIL INFO
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    color: Colors.white,
-                    child: Column(
-                      children: [
-                        _buildDetailTile(
-                          Icons.email_outlined,
-                          "Email",
-                          _profileData!['email'] ?? '-',
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        _buildDetailTile(
-                          Icons.info_outline,
-                          "Bio",
-                          _profileData!['bio'] ?? '-',
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        _buildDetailTile(
-                          Icons.calendar_today_outlined,
-                          "Bergabung Sejak",
-                          _profileData!['date_joined'] ?? '-',
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        _buildDetailTile(
-                          Icons.login_outlined,
-                          "Login Terakhir",
-                          _profileData!['last_login'] ?? '-',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // TOMBOL EDIT (Placeholder)
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.edit),
-                      label: const Text("Edit Profil"),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: AppColors.blue400),
-                        foregroundColor: AppColors.blue400,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        // TODO: Navigasi ke EditProfilePage
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Fitur Edit Profil segera hadir!"),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      child: ClipOval(
+        child: Image.network(
+          finalUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: Colors.black,
+              child: Icon(Icons.person, size: radius, color: Colors.white),
+            );
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildDetailTile(IconData icon, String title, String value) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.blue50,
-          borderRadius: BorderRadius.circular(8),
+  @override
+  Widget build(BuildContext context) {
+    final bool isMyProfile = widget.userId == null;
+
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text(
+          'Profil Pengguna',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        child: Icon(icon, color: AppColors.blue400, size: 20),
+        backgroundColor: AppColors.blue400,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      ),
-      subtitle: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
+      drawer: isMyProfile ? LeftDrawer(userData: profileData) : null,
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.blue400),
+            )
+          : errorMessage.isNotEmpty
+          ? Center(child: Text(errorMessage))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 672),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _buildProfileImage(profileData!['profile_picture'], 64),
+
+                      const SizedBox(height: 16),
+
+                      Text(
+                        profileData!['username'] ?? "",
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.blue400,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.blue100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          (profileData!['role'] ?? "PENGGUNA").toString(),
+                          style: const TextStyle(
+                            color: AppColors.blue400,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Text(
+                        (profileData!['bio'] != null &&
+                                profileData!['bio'].toString().isNotEmpty)
+                            ? profileData!['bio']
+                            : "User ini belum menulis bio.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      if (profileData!['can_edit'] == true)
+                        Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      EditProfilePage(userData: profileData!),
+                                ),
+                              );
+                              if (result == true) fetchProfile();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.blue400,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              "Edit Profil",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+
+                      const SizedBox(height: 32),
+                      const Divider(thickness: 1, color: Colors.grey),
+                      const SizedBox(height: 32),
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Tim yang Diikuti",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "Pengguna ini belum bergabung dengan tim manapun.",
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Histori & Statistik Prediksi",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.blue50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          "Total Poin: 0",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.blue400,
+                          ),
+                        ),
+                      ),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          "Pengguna ini belum membuat prediksi apapun.",
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

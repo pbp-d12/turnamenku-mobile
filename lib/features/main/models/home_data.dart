@@ -4,7 +4,7 @@ class HomeData {
   final List<dynamic> upcomingMatches;
   final List<dynamic> recentThreads;
   final List<dynamic> topPredictors;
-  final Map<String, dynamic>? userData; // Bisa null kalau Guest
+  final Map<String, dynamic>? userData;
   final Map<String, dynamic> stats;
 
   HomeData({
@@ -24,7 +24,7 @@ class HomeData {
       upcomingMatches: json['upcoming_matches'] ?? [],
       recentThreads: json['recent_threads'] ?? [],
       topPredictors: json['top_predictors'] ?? [],
-      userData: json['user_data'], // Otomatis null jika JSON-nya null
+      userData: json['user_data'],
       stats:
           json['stats'] ??
           {
