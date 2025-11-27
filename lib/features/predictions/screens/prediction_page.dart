@@ -6,7 +6,8 @@ import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
 import 'package:turnamenku_mobile/features/predictions/models/prediction_match.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/leaderboard_page.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/add_match_page.dart';
-import 'package:turnamenku_mobile/core/environments/endpoints.dart'; 
+import 'package:turnamenku_mobile/core/environments/endpoints.dart';
+import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 
 class PredictionPage extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -17,7 +18,6 @@ class PredictionPage extends StatefulWidget {
 }
 
 class _PredictionPageState extends State<PredictionPage> {
-  // Variabel future agar data tidak di-fetch ulang setiap kali tab berubah
   late Future<List<PredictionMatch>> _matchesFuture;
 
   @override
@@ -40,10 +40,9 @@ class _PredictionPageState extends State<PredictionPage> {
 
     if (context.mounted) {
       if (response['status'] == 'success') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'])),
-        );
-        // Refresh data setelah vote berhasil
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(response['message'])));
         setState(() {
           _matchesFuture = fetchMatches(request);
         });
@@ -55,8 +54,12 @@ class _PredictionPageState extends State<PredictionPage> {
     }
   }
 
- // --- FUNGSI: EDIT SKOR---
-  Future<void> _editMatchScore(CookieRequest request, int matchId, int currentHome, int currentAway) async {
+  Future<void> _editMatchScore(
+    CookieRequest request,
+    int matchId,
+    int currentHome,
+    int currentAway,
+  ) async {
     final homeController = TextEditingController(text: currentHome.toString());
     final awayController = TextEditingController(text: currentAway.toString());
 
@@ -85,27 +88,31 @@ class _PredictionPageState extends State<PredictionPage> {
             child: const Text("Batal"),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.blue400,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
-              if (homeController.text.isEmpty || awayController.text.isEmpty) return;
+              if (homeController.text.isEmpty || awayController.text.isEmpty)
+                return;
 
               final response = await request.postJson(
-                Endpoints.predictionEditScore, 
+                Endpoints.predictionEditScore,
                 jsonEncode({
-                  'match_id': matchId, 
-                  'home_score': int.parse(homeController.text), 
+                  'match_id': matchId,
+                  'home_score': int.parse(homeController.text),
                   'away_score': int.parse(awayController.text),
                 }),
               );
 
               if (context.mounted) {
-                // [PERUBAHAN 2] Cek 'status' == 'success'
                 if (response['status'] == 'success') {
-                  Navigator.pop(context); // Tutup dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(response['message'])),
-                  );
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(response['message'])));
                   setState(() {
-                    _matchesFuture = fetchMatches(request); // Refresh data
+                    _matchesFuture = fetchMatches(request);
                   });
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -121,48 +128,48 @@ class _PredictionPageState extends State<PredictionPage> {
     );
   }
 
-  // --- FUNGSI: HAPUS PREDIKSI ---
   Future<void> _deletePredictions(CookieRequest request, int matchId) async {
-    bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Hapus Prediksi"),
-        content: const Text(
-            "Apakah Anda yakin ingin menghapus semua prediksi user untuk pertandingan ini?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false), 
-            child: const Text("Batal")
+    bool confirm =
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Hapus Prediksi"),
+            content: const Text(
+              "Apakah Anda yakin ingin menghapus semua prediksi user untuk pertandingan ini?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Batal"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text("Hapus"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("Hapus"),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (confirm) {
       final response = await request.postJson(
-        Endpoints.predictionDelete, 
-        jsonEncode({
-          'match_id': matchId,
-        }),
+        Endpoints.predictionDelete,
+        jsonEncode({'match_id': matchId}),
       );
 
       if (context.mounted) {
         if (response['status'] == 'success') {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text(response['message'])),
-           );
-           setState(() {
-             _matchesFuture = fetchMatches(request);
-           });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(response['message'])));
+          setState(() {
+            _matchesFuture = fetchMatches(request);
+          });
         } else {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text("Gagal: ${response['message']}")),
-           );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal: ${response['message']}")),
+          );
         }
       }
     }
@@ -172,21 +179,25 @@ class _PredictionPageState extends State<PredictionPage> {
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
 
-    // --- LOGIKA CEK ROLE ---
     bool canAddMatch = false;
     if (widget.userData != null && widget.userData!.containsKey('role')) {
       final String userRole = widget.userData!['role'].toString().toLowerCase();
-      // Izinkan akses jika role adalah 'admin' atau 'penyelenggara'
       if (userRole == 'admin' || userRole == 'penyelenggara') {
         canAddMatch = true;
       }
     }
 
     return DefaultTabController(
-      length: 2, 
+      length: 2,
       child: Scaffold(
+        backgroundColor: AppColors.blue50, // Sesuaikan background
         appBar: AppBar(
-          title: const Text('Prediksi Pertandingan'),
+          title: const Text(
+            'Prediksi Pertandingan',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          backgroundColor: AppColors.blue400, // Sesuaikan warna AppBar
+          iconTheme: const IconThemeData(color: Colors.white),
           actions: [
             IconButton(
               icon: const Icon(Icons.leaderboard),
@@ -202,6 +213,9 @@ class _PredictionPageState extends State<PredictionPage> {
             ),
           ],
           bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
             tabs: [
               Tab(icon: Icon(Icons.sports_soccer), text: "Voting (Aktif)"),
               Tab(icon: Icon(Icons.history), text: "Riwayat (Selesai)"),
@@ -209,8 +223,6 @@ class _PredictionPageState extends State<PredictionPage> {
           ),
         ),
         drawer: LeftDrawer(userData: widget.userData),
-        
-        // Tombol hanya muncul jika canAddMatch bernilai true
         floatingActionButton: canAddMatch
             ? FloatingActionButton.extended(
                 onPressed: () async {
@@ -222,30 +234,35 @@ class _PredictionPageState extends State<PredictionPage> {
                   );
 
                   if (shouldRefresh == true) {
-                     setState(() {
-                        _matchesFuture = fetchMatches(request);
-                     });
+                    setState(() {
+                      _matchesFuture = fetchMatches(request);
+                    });
                   }
                 },
                 label: const Text('Add Match'),
                 icon: const Icon(Icons.add),
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: AppColors.blue400, // Sesuaikan warna FAB
                 foregroundColor: Colors.white,
                 tooltip: 'Tambah Pertandingan Baru',
               )
-            : null, 
-
+            : null,
         body: FutureBuilder(
           future: _matchesFuture,
           builder: (context, AsyncSnapshot<List<PredictionMatch>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.blue400),
+              );
             } else if (snapshot.hasError) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 60,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       "Gagal memuat data.\n${snapshot.error}",
@@ -254,6 +271,10 @@ class _PredictionPageState extends State<PredictionPage> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.blue400,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: () {
                         setState(() {
                           _matchesFuture = fetchMatches(request);
@@ -276,8 +297,18 @@ class _PredictionPageState extends State<PredictionPage> {
 
               return TabBarView(
                 children: [
-                  _buildMatchList(ongoingMatches, request, isVotingTab: true, isAdmin: canAddMatch),
-                  _buildMatchList(finishedMatches, request, isVotingTab: false, isAdmin: canAddMatch),
+                  _buildMatchList(
+                    ongoingMatches,
+                    request,
+                    isVotingTab: true,
+                    isAdmin: canAddMatch,
+                  ),
+                  _buildMatchList(
+                    finishedMatches,
+                    request,
+                    isVotingTab: false,
+                    isAdmin: canAddMatch,
+                  ),
                 ],
               );
             }
@@ -291,7 +322,7 @@ class _PredictionPageState extends State<PredictionPage> {
     List<PredictionMatch> matches,
     CookieRequest request, {
     required bool isVotingTab,
-    required bool isAdmin, // Menerima parameter status admin
+    required bool isAdmin,
   }) {
     if (matches.isEmpty) {
       return Center(
@@ -316,15 +347,14 @@ class _PredictionPageState extends State<PredictionPage> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(
-        top: 8, left: 8, right: 8, bottom: 80
-      ),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
       itemCount: matches.length,
       itemBuilder: (_, index) {
         final match = matches[index];
         return Card(
-          elevation: 3,
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          elevation: 2,
+          color: Colors.white, // Gunakan background putih untuk card
+          margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -332,11 +362,14 @@ class _PredictionPageState extends State<PredictionPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                // Header: Nama Turnamen & Tanggal
+                // Header
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: isVotingTab ? Colors.blue[50] : Colors.grey[100],
+                    color: isVotingTab ? AppColors.blue50 : Colors.grey[100],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -345,7 +378,9 @@ class _PredictionPageState extends State<PredictionPage> {
                         match.tournament,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: isVotingTab ? Colors.blue[800] : Colors.grey[700],
+                          color: isVotingTab
+                              ? AppColors.blue400
+                              : Colors.grey[700],
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -359,14 +394,18 @@ class _PredictionPageState extends State<PredictionPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Content: Tim vs Tim
+                // Content
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: _buildTeamColumn(match, match.homeTeam, match.homeTeamId, request),
+                      child: _buildTeamColumn(
+                        match,
+                        match.homeTeam,
+                        match.homeTeamId,
+                        request,
+                      ),
                     ),
-
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Column(
@@ -376,58 +415,76 @@ class _PredictionPageState extends State<PredictionPage> {
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 24,
-                              color: Colors.grey[400],
+                              color: Colors.grey[300],
                             ),
                           ),
                           if (!isVotingTab)
                             Container(
                               margin: const EdgeInsets.only(top: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 "${match.homeScore} - ${match.awayScore}",
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                         ],
                       ),
                     ),
-
                     Expanded(
-                      child: _buildTeamColumn(match, match.awayTeam, match.awayTeamId, request),
+                      child: _buildTeamColumn(
+                        match,
+                        match.awayTeam,
+                        match.awayTeamId,
+                        request,
+                      ),
                     ),
                   ],
                 ),
 
-                // --- ADMIN ACTIONS (EDIT/DELETE) ---
+                // Admin Actions
                 if (isAdmin && !match.isFinished) ...[
                   const Divider(height: 32),
                   const Text(
                     "Admin Actions",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Tombol Edit Skor
                       OutlinedButton.icon(
                         onPressed: () => _editMatchScore(
-                          request, match.id, match.homeScore, match.awayScore
+                          request,
+                          match.id,
+                          match.homeScore,
+                          match.awayScore,
                         ),
                         icon: const Icon(Icons.edit, size: 16),
                         label: const Text("Edit Skor"),
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.blue[800]),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.blue400,
+                        ),
                       ),
-                      // Tombol Hapus Prediksi
                       OutlinedButton.icon(
                         onPressed: () => _deletePredictions(request, match.id),
                         icon: const Icon(Icons.delete_forever, size: 16),
-                        label: const Text("Reset Prediksi"),
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.red[800]),
+                        label: const Text("Reset"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red[800],
+                        ),
                       ),
                     ],
                   ),
@@ -442,7 +499,10 @@ class _PredictionPageState extends State<PredictionPage> {
                           : match.awayScore > match.homeScore
                           ? "${match.awayTeam} Menang!"
                           : "Hasil Seri",
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                   ),
               ],
@@ -472,13 +532,12 @@ class _PredictionPageState extends State<PredictionPage> {
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 12),
-
         if (!isFinished)
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isChosen ? Colors.blue : Colors.white,
-              foregroundColor: isChosen ? Colors.white : Colors.blue,
-              side: BorderSide(color: Colors.blue.shade200),
+              backgroundColor: isChosen ? AppColors.blue400 : Colors.white,
+              foregroundColor: isChosen ? Colors.white : AppColors.blue400,
+              side: const BorderSide(color: AppColors.blue200),
               elevation: isChosen ? 2 : 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -501,8 +560,7 @@ class _PredictionPageState extends State<PredictionPage> {
             },
             child: Text(isChosen ? "Dipilih" : "Vote"),
           )
-        else
-        if (isChosen && request.loggedIn)
+        else if (isChosen && request.loggedIn)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
