@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
 import 'package:turnamenku_mobile/features/predictions/models/prediction_match.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/leaderboard_page.dart';
+import 'package:turnamenku_mobile/features/predictions/screens/add_match_page.dart';
 
 class PredictionPage extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -60,9 +61,20 @@ class _PredictionPageState extends State<PredictionPage> {
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
 
-    // Menggunakan DefaultTabController untuk membuat Tab Bar
+    // --- LOGIKA CEK ROLE ---
+    // Mengambil role dari userData. 
+    // Pastikan userData tidak null dan memiliki key 'role'.
+    bool canAddMatch = false;
+    if (widget.userData != null && widget.userData!.containsKey('role')) {
+      final String userRole = widget.userData!['role'].toString().toLowerCase();
+      // Izinkan akses jika role adalah 'admin' atau 'penyelenggara'
+      if (userRole == 'admin' || userRole == 'penyelenggara') {
+        canAddMatch = true;
+      }
+    }
+
     return DefaultTabController(
-      length: 2, // Jumlah tab (Aktif & Selesai)
+      length: 2, 
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Prediksi Pertandingan'),
@@ -80,7 +92,6 @@ class _PredictionPageState extends State<PredictionPage> {
               },
             ),
           ],
-          // Menambahkan TabBar di bagian bawah AppBar
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.sports_soccer), text: "Voting (Aktif)"),
@@ -89,6 +100,35 @@ class _PredictionPageState extends State<PredictionPage> {
           ),
         ),
         drawer: LeftDrawer(userData: widget.userData),
+        
+        // Tombol hanya muncul jika canAddMatch bernilai true
+        floatingActionButton: canAddMatch
+            ? FloatingActionButton.extended(
+                onPressed: () async {
+                  // Navigasi ke halaman Add Match
+                  // Menggunakan await agar saat kembali bisa refresh data
+                  final bool? shouldRefresh = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddMatchPage(),
+                    ),
+                  );
+
+                  // Jika AddMatchPage mengembalikan true, refresh list pertandingan
+                  if (shouldRefresh == true) {
+                     setState(() {
+                        _matchesFuture = fetchMatches(request);
+                     });
+                  }
+                },
+                label: const Text('Add Match'),
+                icon: const Icon(Icons.add),
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                tooltip: 'Tambah Pertandingan Baru',
+              )
+            : null, // Jika bukan admin/penyelenggara, tombol tidak muncul
+
         body: FutureBuilder(
           future: _matchesFuture,
           builder: (context, AsyncSnapshot<List<PredictionMatch>> snapshot) {
@@ -125,7 +165,6 @@ class _PredictionPageState extends State<PredictionPage> {
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const Center(child: Text("Belum ada data pertandingan."));
             } else {
-              // Memisahkan data menjadi dua list berdasarkan status
               final ongoingMatches = snapshot.data!
                   .where((m) => !m.isFinished)
                   .toList();
@@ -135,10 +174,7 @@ class _PredictionPageState extends State<PredictionPage> {
 
               return TabBarView(
                 children: [
-                  // Tab 1: Pertandingan Aktif (Bisa Vote)
                   _buildMatchList(ongoingMatches, request, isVotingTab: true),
-
-                  // Tab 2: Pertandingan Selesai (Hanya Lihat Skor)
                   _buildMatchList(finishedMatches, request, isVotingTab: false),
                 ],
               );
@@ -149,7 +185,6 @@ class _PredictionPageState extends State<PredictionPage> {
     );
   }
 
-  // Widget helper untuk membangun list pertandingan agar kode lebih rapi
   Widget _buildMatchList(
     List<PredictionMatch> matches,
     CookieRequest request, {
@@ -178,7 +213,12 @@ class _PredictionPageState extends State<PredictionPage> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.only(
+        top: 8, 
+        left: 8, 
+        right: 8, 
+        bottom: 80 // Tambahkan padding bawah agar list tidak tertutup FAB
+      ),
       itemCount: matches.length,
       itemBuilder: (_, index) {
         final match = matches[index];
@@ -228,7 +268,6 @@ class _PredictionPageState extends State<PredictionPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Home Team
                     Expanded(
                       child: _buildTeamColumn(
                         match,
@@ -238,7 +277,6 @@ class _PredictionPageState extends State<PredictionPage> {
                       ),
                     ),
 
-                    // VS / Skor
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Column(
@@ -251,12 +289,9 @@ class _PredictionPageState extends State<PredictionPage> {
                               color: Colors.grey[400],
                             ),
                           ),
-                          if (!isVotingTab) // Tampilkan skor jika di tab riwayat
+                          if (!isVotingTab)
                             Container(
-                              // --- PERBAIKAN DI SINI ---
-                              margin: const EdgeInsets.only(
-                                top: 8,
-                              ), // Sebelumnya EdgeInsets.top(8)
+                              margin: const EdgeInsets.only(top: 8),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
                                 vertical: 4,
@@ -276,7 +311,6 @@ class _PredictionPageState extends State<PredictionPage> {
                       ),
                     ),
 
-                    // Away Team
                     Expanded(
                       child: _buildTeamColumn(
                         match,
@@ -288,7 +322,6 @@ class _PredictionPageState extends State<PredictionPage> {
                   ],
                 ),
 
-                // Footer: Status Pemenang (Khusus Tab Riwayat)
                 if (!isVotingTab)
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
@@ -323,7 +356,6 @@ class _PredictionPageState extends State<PredictionPage> {
 
     return Column(
       children: [
-        // Nama Tim
         Text(
           teamName,
           textAlign: TextAlign.center,
@@ -333,9 +365,7 @@ class _PredictionPageState extends State<PredictionPage> {
         ),
         const SizedBox(height: 12),
 
-        // Tombol Vote atau Indikator Pilihan
         if (!isFinished)
-          // Tampilan Tab Voting
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: isChosen ? Colors.blue : Colors.white,
@@ -364,7 +394,6 @@ class _PredictionPageState extends State<PredictionPage> {
             child: Text(isChosen ? "Dipilih" : "Vote"),
           )
         else
-        // Tampilan Tab Riwayat
         if (isChosen && request.loggedIn)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
