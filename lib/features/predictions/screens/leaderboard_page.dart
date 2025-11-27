@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:turnamenku_mobile/core/environments/endpoints.dart';
+
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -10,11 +12,10 @@ class LeaderboardPage extends StatefulWidget {
 }
 
 class _LeaderboardPageState extends State<LeaderboardPage> {
-  final String baseUrl = "http://127.0.0.1:8000";
 
   Future<List<dynamic>> fetchLeaderboard(CookieRequest request) async {
-    final response = await request.get('$baseUrl/predictions/api/leaderboard/');
-    return response; // response sudah berupa List json
+    final response = await request.get(Endpoints.predictionLeaderboard);
+    return response; 
   }
 
   @override

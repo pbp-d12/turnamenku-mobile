@@ -6,6 +6,7 @@ import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
 import 'package:turnamenku_mobile/features/predictions/models/prediction_match.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/leaderboard_page.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/add_match_page.dart';
+import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 
 class PredictionPage extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -16,8 +17,6 @@ class PredictionPage extends StatefulWidget {
 }
 
 class _PredictionPageState extends State<PredictionPage> {
-  // Sesuaikan URL dengan environment Anda
-  final String baseUrl = "http://127.0.0.1:8000";
 
   // Variabel future agar data tidak di-fetch ulang setiap kali tab berubah
   late Future<List<PredictionMatch>> _matchesFuture;
@@ -30,13 +29,13 @@ class _PredictionPageState extends State<PredictionPage> {
   }
 
   Future<List<PredictionMatch>> fetchMatches(CookieRequest request) async {
-    final response = await request.get('$baseUrl/predictions/api/matches/');
+    final response = await request.get(Endpoints.predictionMatches);
     return predictionMatchFromJson(jsonEncode(response));
   }
 
   Future<void> voteTeam(CookieRequest request, int matchId, int teamId) async {
     final response = await request.postJson(
-      '$baseUrl/predictions/api/submit/',
+      Endpoints.predictionSubmit,
       jsonEncode({'match_id': matchId, 'team_id': teamId}),
     );
 
