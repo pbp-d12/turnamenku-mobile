@@ -10,6 +10,7 @@ import 'package:turnamenku_mobile/features/auth/services/auth_service.dart';
 import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
 import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
 import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
+import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
 
 class LeftDrawer extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -168,19 +169,19 @@ class LeftDrawer extends StatelessWidget {
               );
             },
           ),
-          _buildDrawerItem(
-            icon: Icons.sports_soccer_rounded,
+           _buildDrawerItem(
+            icon: Icons.sports_soccer_rounded, 
             title: "Predictions",
             onTap: () {
-              Navigator.pop(context);
-              CustomSnackbar.show(
+              Navigator.pushReplacement(
                 context,
-                "Fitur Predictions belum tersedia.",
-                SnackbarStatus.info,
+                MaterialPageRoute(
+                  builder: (context) => PredictionPage(userData: userData),
+                ),
               );
             },
           ),
-
+        
           const Divider(height: 32, thickness: 1),
 
           if (isLoggedIn) ...[
