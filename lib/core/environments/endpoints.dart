@@ -9,6 +9,7 @@ class Endpoints {
   static const String userProfile = '$baseUrl/api/profile/';
   static const String updateProfile = '$baseUrl/api/profile/update/';
   static const String searchProfiles = '$baseUrl/api/search/';
+  static const String changePassword = '$baseUrl/api/change-password/';
 
   //tournaments endpoints
   static const String tournaments = '$baseUrl/tournaments/json/';
