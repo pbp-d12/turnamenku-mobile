@@ -57,7 +57,7 @@ class _HomePageState extends State<HomePage> {
           );
         }
       } catch (e) {
-        debugPrint("Gagal fetch profile (Mungkin Guest): $e");
+        // heh, ignore profile fetch errors
       }
 
       if (mounted) {
@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        debugPrint("Error fetching home data: $e");
+        // ignore errors
       }
     }
   }

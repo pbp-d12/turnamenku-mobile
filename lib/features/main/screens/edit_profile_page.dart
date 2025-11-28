@@ -181,7 +181,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             fillColor: isTargetAdmin ? Colors.grey[100] : Colors.white,
             helperText: isTargetAdmin
                 ? "Role Admin tidak dapat diubah."
-                : "Pilih peran Anda dalam aplikasi.",
+                : "Pilih role Anda.",
             helperStyle: TextStyle(color: Colors.grey[500], fontSize: 12),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/theme/app_theme.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
+import 'package:turnamenku_mobile/features/main/screens/change_password_page.dart';
 import 'package:turnamenku_mobile/features/main/screens/edit_profile_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -165,7 +166,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     border: Border.all(color: Colors.grey.shade200),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -266,10 +267,48 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                             ),
+
+                          if (profileData!['is_self'] == true) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ChangePasswordPage(),
+                                    ),
+                                  );
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.blue400,
+                                  side: const BorderSide(
+                                    color: AppColors.blue400,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                    horizontal: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Ganti Password",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
 
-                      const SizedBox(height: 32),
+                      if (profileData!['can_edit'] == true)
+                        const SizedBox(height: 32),
+
                       const Divider(thickness: 1, color: Colors.grey),
                       const SizedBox(height: 32),
 
