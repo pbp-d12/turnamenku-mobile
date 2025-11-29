@@ -5,7 +5,8 @@ import 'package:turnamenku_mobile/core/environments/endpoints.dart';
 import 'package:turnamenku_mobile/core/widgets/left_drawer.dart';
 import 'package:turnamenku_mobile/features/tournaments/models/tournament.dart';
 import 'package:turnamenku_mobile/features/tournaments/widgets/tournament_card.dart';
-import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart'; // <--- BARU
+import 'package:turnamenku_mobile/core/widgets/custom_snackbar.dart'; 
+import 'package:turnamenku_mobile/features/tournaments/screens/tournament_form_page.dart';
 
 class TournamentListPage extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -51,21 +52,24 @@ class _TournamentListPageState extends State<TournamentListPage> {
       ),
       drawer: LeftDrawer(userData: widget.userData),
 
-      // FLOATING ACTION BUTTON HANYA JIKA PENYELENGGARA
-      floatingActionButton: isOrganizer
-          ? FloatingActionButton(
-              onPressed: () {
-                // Menggunakan Custom Snackbar
-                CustomSnackbar.show(
-                  context,
-                  "Create Tournament feature coming soon!",
-                  SnackbarStatus.info, // Menggunakan status Info
-                );
-              },
-              tooltip: 'Create Tournament',
-              child: const Icon(Icons.add),
-            )
-          : null, // Jika bukan organizer, tombol disembunyikan
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Navigasi ke Form tanpa parameter (Mode Create)
+          final bool? shouldRefresh = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const TournamentFormPage(),
+            ),
+          );
+
+          // Refresh list jika berhasil membuat
+          if (shouldRefresh == true) {
+            setState(() {});
+          }
+        },
+        tooltip: 'Create Tournament',
+        child: const Icon(Icons.add),
+      ),
 
       body: FutureBuilder(
         future: fetchTournaments(request),
