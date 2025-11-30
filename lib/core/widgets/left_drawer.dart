@@ -11,6 +11,7 @@ import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
 import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
 import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
+import 'package:turnamenku_mobile/features/teams/screens/team_page.dart';
 
 class LeftDrawer extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -149,12 +150,9 @@ class LeftDrawer extends StatelessWidget {
             icon: Icons.groups_rounded,
             title: "Teams",
             onTap: () {
-              Navigator.pop(context);
-              CustomSnackbar.show(
-                context,
-                "Fitur Teams belum tersedia.",
-                SnackbarStatus.info,
-              );
+              Navigator.pushReplacement(
+                context, MaterialPageRoute(
+                  builder: (context) => TeamSelectionPage(userData: userData)));
             },
           ),
           _buildDrawerItem(
