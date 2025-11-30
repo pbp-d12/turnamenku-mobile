@@ -37,4 +37,7 @@ class Endpoints {
       '$baseUrl/predictions/api/edit-score/';
   static const String predictionDelete =
       '$baseUrl/predictions/api/delete-prediction/';
+  static const String forumSearch = '$baseUrl/forums/api/search/';
+  static String forumThreads(int id) => '$baseUrl/forums/api/tournament/$id/threads/';
+  static String forumPosts(int id) => '$baseUrl/forums/api/thread/$id/posts/';
 }
