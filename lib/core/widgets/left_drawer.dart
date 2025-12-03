@@ -11,7 +11,7 @@ import 'package:turnamenku_mobile/features/main/screens/home_page.dart';
 import 'package:turnamenku_mobile/features/main/screens/profile_page.dart';
 import 'package:turnamenku_mobile/features/tournaments/screens/tournament_list_page.dart';
 import 'package:turnamenku_mobile/features/predictions/screens/prediction_page.dart';
-import 'package:turnamenku_mobile/features/teams/screens/team_page.dart';
+import 'package:turnamenku_mobile/features/teams/screens/team_list_screen.dart';
 
 class LeftDrawer extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -152,7 +152,9 @@ class LeftDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pushReplacement(
                 context, MaterialPageRoute(
-                  builder: (context) => TeamSelectionPage(userData: userData)));
+                  builder: (context) => TeamListScreen(userData: userData),
+                )
+              );
             },
           ),
           _buildDrawerItem(

@@ -37,4 +37,16 @@ class Endpoints {
       '$baseUrl/predictions/api/edit-score/';
   static const String predictionDelete =
       '$baseUrl/predictions/api/delete-prediction/';
+
+  // Teams endpoints
+  static const String teams = '$baseUrl/teams/api/teams/'; 
+  static const String createTeam = teams; 
+  static const String searchTeams = '$baseUrl/teams/search/';
+  static String teamDetail(int id) => '$baseUrl/teams/json/$id/';
+  static String joinTeam(int id) => '$baseUrl/teams/$id/join/';
+  static String leaveTeam(int id) => '$baseUrl/teams/$id/leave/';
+  static String deleteTeam(int id) => '$baseUrl/teams/$id/delete/';
+  static String editTeam(int id) => '$baseUrl/teams/$id/edit/';
+  static String kickMember(int teamId, String username) => 
+      '$baseUrl/teams/$teamId/member/$username/delete/';
 }
