@@ -162,10 +162,11 @@ class LeftDrawer extends StatelessWidget {
             title: "Forums",
             onTap: () {
               Navigator.pop(context);
-              CustomSnackbar.show(
+              Navigator.pushReplacement(
                 context,
-                "Fitur Forums belum tersedia.",
-                SnackbarStatus.info,
+                MaterialPageRoute(
+                  builder: (context) => ForumHomePage(userData: userData),
+                ),
               );
             },
           ),
