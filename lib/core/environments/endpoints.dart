@@ -11,7 +11,6 @@ class Endpoints {
   static const String searchProfiles = '$baseUrl/api/search/';
   static const String changePassword = '$baseUrl/api/change-password/';
 
-  //tournaments endpoints
   static const String tournaments = '$baseUrl/tournaments/json/';
   static const String createTournament = '$baseUrl/tournaments/create/';
   static String tournamentDetail(int id) => '$baseUrl/tournaments/json/$id/';
@@ -37,8 +36,7 @@ class Endpoints {
       '$baseUrl/predictions/api/edit-score/';
   static const String predictionDelete =
       '$baseUrl/predictions/api/delete-prediction/';
-
-  // Teams endpoints
+      
   static const String teams = '$baseUrl/teams/api/teams/'; 
   static const String createTeam = teams; 
   static const String searchTeams = '$baseUrl/teams/search/';
@@ -49,4 +47,11 @@ class Endpoints {
   static String editTeam(int id) => '$baseUrl/teams/$id/edit/';
   static String kickMember(int teamId, String username) => 
       '$baseUrl/teams/$teamId/member/$username/delete/';
+  static const String forumSearch = '$baseUrl/forums/api/search/'; 
+  static String createForumThread(int tournamentId) => 
+      '$baseUrl/forums/api/tournament/$tournamentId/create-thread/';
+  static String forumThreads(int tournamentId) => 
+      '$baseUrl/forums/api/tournament/$tournamentId/threads/';
+  static String forumPosts(int threadId) => 
+      '$baseUrl/forums/api/thread/$threadId/posts/';
 }
