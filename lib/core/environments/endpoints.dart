@@ -1,6 +1,6 @@
 class Endpoints {
   static const String baseUrl =
-      'https://gibran-tegar-turnamenku.pbp.cs.ui.ac.id';
+      'http://127.0.0.1:8000';
 
   static const String homeData = '$baseUrl/api/home/';
   static const String login = '$baseUrl/auth/login/';

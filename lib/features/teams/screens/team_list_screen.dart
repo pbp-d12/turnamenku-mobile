@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart'; // Import AppTheme
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../core/widgets/left_drawer.dart';
 import '../../../core/widgets/team_logo.dart'; 
@@ -21,12 +21,11 @@ class TeamListScreen extends StatefulWidget {
 }
 
 class _TeamListScreenState extends State<TeamListScreen> {
-  int _selectedIndex = 0; // 0 = Tim Kamu, 1 = Kelola, 2 = Gabung
+  int _selectedIndex = 0;
   int _currentPage = 1;
   String _searchQuery = "";
   Timer? _debounce;
 
-  // Warna UI
   final Color bgColor = const Color(0xFFDDE6ED); 
   final Color btnActiveColor = const Color(0xFF27496D);
   final Color btnInactiveColor = const Color(0xFF748DA6);
@@ -62,37 +61,36 @@ class _TeamListScreenState extends State<TeamListScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         title: const Text(
-          "Turnamenku", 
+          "Teams", 
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)
         ),
-        backgroundColor: AppColors.blue400, // Menggunakan AppColors
+        backgroundColor: AppColors.blue400,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: LeftDrawer(userData: widget.userData),
       body: Column(
         children: [
           const SizedBox(height: 15),
-          
-          // --- 1. SEARCH BAR ---
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Cari tim atau kapten...",
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+            child: Hero(
+              tag: 'searchBar',
+              child: Material(
+                color: Colors.transparent,
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: "Cari tim atau kapten...",
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  ),
+                  onChanged: _onSearchChanged,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               ),
-              onChanged: _onSearchChanged,
             ),
           ),
-
-          // --- 2. TAB BUTTONS ---
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
@@ -106,26 +104,18 @@ class _TeamListScreenState extends State<TeamListScreen> {
               ],
             ),
           ),
-
-          // --- 3. ISI UTAMA (LIST + PAGINATION) ---
           Expanded(
             child: FutureBuilder<Map<String, dynamic>>(
               future: teamService.fetchTeams(_currentMode, _currentPage, query: _searchQuery),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (snapshot.hasError || !snapshot.hasData || (snapshot.data!['teams'] as List).isEmpty) {
-                  return _buildEmptyState();
-                }
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError || !snapshot.hasData || (snapshot.data!['teams'] as List).isEmpty) return _buildEmptyState();
 
                 final List<Team> teams = snapshot.data!['teams'];
                 final Map pagination = snapshot.data!['pagination'];
 
                 return Column(
                   children: [
-                    // List Teams
                     Expanded(
                       child: ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -136,29 +126,16 @@ class _TeamListScreenState extends State<TeamListScreen> {
                         },
                       ),
                     ),
-
-                    // Pagination
                     _buildPaginationControls(pagination),
                   ],
                 );
               },
             ),
           ),
-
-          // --- 4. FOOTER (TOMBOL BUAT TIM) ---
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(bottom: 20, top: 10),
-            decoration: BoxDecoration(
-              color: bgColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  offset: const Offset(0, -2),
-                  blurRadius: 5
-                )
-              ]
-            ),
+            decoration: BoxDecoration(color: bgColor, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, -2), blurRadius: 5)]),
             child: Column(
               children: [
                 SizedBox(
@@ -171,20 +148,33 @@ class _TeamListScreenState extends State<TeamListScreen> {
                       elevation: 3,
                     ),
                     onPressed: () async {
-                      await Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTeamScreen()));
+                      await Navigator.push(
+                        context, 
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) => const CreateTeamScreen(),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            const begin = Offset(0.0, 1.0);
+                            const end = Offset.zero;
+                            const curve = Curves.ease;
+                            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                            return SlideTransition(position: animation.drive(tween), child: child);
+                          },
+                        )
+                      );
                       setState(() {});
                     },
-                    child: const Text(
-                      "Buat Tim Baru", 
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.add_circle_outline, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text("Buat Tim Baru", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  "Jadilah kapten dari teammu sendiri! 🫡",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
+                const Text("Jadilah kapten dari teammu sendiri! 🫡", style: TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           )
@@ -203,7 +193,8 @@ class _TeamListScreenState extends State<TeamListScreen> {
         });
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         decoration: BoxDecoration(
           color: isActive ? btnActiveColor : btnInactiveColor,
@@ -222,11 +213,25 @@ class _TeamListScreenState extends State<TeamListScreen> {
 
     if (_selectedIndex == 0) { // Meet
       btnLabel = "Detail";
-      onTapAction = () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => TeamDetailScreen(teamId: team.id))).then((_) => setState((){}));
+      onTapAction = () async {
+        final result = await Navigator.push(ctx, MaterialPageRoute(builder: (_) => TeamDetailScreen(teamId: team.id)));
+        if (result == true && ctx.mounted) {
+           CustomSnackbar.show(ctx, "Berhasil keluar dari tim!", SnackbarStatus.success);
+           setState((){});
+        }
+      };
     } 
     else if (_selectedIndex == 1) { // Manage
       btnLabel = "Kelola";
-      onTapAction = () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => TeamManageScreen(teamId: team.id))).then((_) => setState((){}));
+      onTapAction = () async {
+        final result = await Navigator.push(ctx, MaterialPageRoute(builder: (_) => TeamManageScreen(teamId: team.id)));
+        if (result == true && ctx.mounted) {
+           CustomSnackbar.show(ctx, "Tim berhasil dihapus!", SnackbarStatus.success);
+           setState((){});
+        } else {
+           setState((){}); 
+        }
+      };
     } 
     else { // Join
       btnLabel = "Join";
@@ -236,14 +241,13 @@ class _TeamListScreenState extends State<TeamListScreen> {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))]),
       child: Row(
         children: [
-          TeamLogo(url: team.logo, radius: 25),
+          Hero(
+            tag: 'team_logo_${team.id}', 
+            child: TeamLogo(url: team.logo, radius: 25),
+          ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
@@ -254,17 +258,14 @@ class _TeamListScreenState extends State<TeamListScreen> {
               ],
             ),
           ),
-          SizedBox(
-            height: 32,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: btnColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              onPressed: onTapAction,
-              child: Text(btnLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: btnColor, 
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), 
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
             ),
+            onPressed: onTapAction,
+            child: Text(btnLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],
       ),
@@ -282,12 +283,14 @@ class _TeamListScreenState extends State<TeamListScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00D13B)),
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); 
+              
               bool success = await service.joinTeam(team.id);
+              
               if (ctx.mounted) {
                 if (success) {
                   CustomSnackbar.show(ctx, "Berhasil join tim! 🎉", SnackbarStatus.success);
-                  setState(() {});
+                  setState(() {}); 
                 } else {
                   CustomSnackbar.show(ctx, "Gagal join tim.", SnackbarStatus.error);
                 }
@@ -309,17 +312,7 @@ class _TeamListScreenState extends State<TeamListScreen> {
     } else {
       message = "Tidak ada tim dengan nama '$_searchQuery'";
     }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
-          const SizedBox(height: 10),
-          Text(message, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-        ],
-      ),
-    );
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.search_off, size: 60, color: Colors.grey[400]), const SizedBox(height: 10), Text(message, style: const TextStyle(color: Colors.grey, fontSize: 14))]));
   }
 
   Widget _buildPaginationControls(Map pagination) {
@@ -328,20 +321,11 @@ class _TeamListScreenState extends State<TeamListScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-             icon: const Icon(Icons.chevron_left),
-             onPressed: pagination['has_previous'] ? () => setState(() => _currentPage--) : null,
-          ),
+          IconButton(icon: const Icon(Icons.chevron_left), onPressed: pagination['has_previous'] ? () => setState(() => _currentPage--) : null),
           const SizedBox(width: 5),
-          Text(
-            "$_currentPage",
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 16),
-          ),
+          Text("$_currentPage", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 16)),
           const SizedBox(width: 5),
-          IconButton(
-             icon: const Icon(Icons.chevron_right),
-             onPressed: pagination['has_next'] ? () => setState(() => _currentPage++) : null,
-          ),
+          IconButton(icon: const Icon(Icons.chevron_right), onPressed: pagination['has_next'] ? () => setState(() => _currentPage++) : null),
         ],
       ),
     );

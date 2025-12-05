@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart'; // Import AppTheme
+import '../../../core/theme/app_theme.dart'; 
 import '../../../core/widgets/custom_snackbar.dart';
 import '../../../core/widgets/team_logo.dart';
 import '../services/team_service.dart';
@@ -29,8 +29,8 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text("Turnamenku", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: AppColors.blue400, // AppColors
+        title: const Text("Buat Tim", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: AppColors.blue400, 
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
@@ -62,7 +62,6 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
                   ),
                   const SizedBox(height: 20),
                   
-                  // Preview Logo Pintar
                   if (_logo.isNotEmpty) ...[
                     const Text("Preview Logo:", style: TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 5),
