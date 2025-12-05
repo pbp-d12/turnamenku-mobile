@@ -14,17 +14,15 @@ class TeamLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Kalau URL kosong, pakai Icon Default
     if (url == null || url!.isEmpty) {
       return _buildDefaultIcon();
     }
 
-    // 2. Kalau ada URL, coba load
     return CircleAvatar(
       radius: radius,
       backgroundColor: Colors.grey[300],
       backgroundImage: NetworkImage(url!),
-      onBackgroundImageError: (_, __) {}, // Supaya gak crash kalau error
+      onBackgroundImageError: (_, __) {},
       child: Image.network(
         url!,
         width: radius * 2,
@@ -34,7 +32,7 @@ class TeamLogo extends StatelessWidget {
           if (progress == null) return ClipRRect(borderRadius: BorderRadius.circular(radius), child: child);
           return Center(child: CircularProgressIndicator(strokeWidth: 2));
         },
-        errorBuilder: (ctx, error, stack) => _buildDefaultIcon(), // Fallback ke icon kalau link rusak
+        errorBuilder: (ctx, error, stack) => _buildDefaultIcon(),
       ),
     );
   }
@@ -43,7 +41,7 @@ class TeamLogo extends StatelessWidget {
     return CircleAvatar(
       radius: radius,
       backgroundColor: Colors.grey[300],
-      child: Icon(Icons.groups, size: iconSize, color: Colors.grey[600]), // Icon Orang
+      child: Icon(Icons.groups, size: iconSize, color: Colors.grey[600]),
     );
   }
 }
