@@ -1,3 +1,4 @@
+import 'dart:async'; 
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,9 @@ class ForumHomePage extends StatefulWidget {
 
 class _ForumHomePageState extends State<ForumHomePage> {
   final TextEditingController _searchController = TextEditingController();
+  
+  final _debouncer = Debouncer(milliseconds: 500);
+
   String _searchQuery = "";
   String _sortDirection = "desc";
   String _organizerFilter = "";
@@ -33,14 +37,25 @@ class _ForumHomePageState extends State<ForumHomePage> {
   bool _isLoading = false;
   List<ForumTournament> _tournaments = [];
 
-  @override
+@override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
+      _debouncer.run(() {
+        setState(() {
+          _searchQuery = _searchController.text;
+          
+          if (_searchQuery.isNotEmpty) {
+             _organizerFilter = "";
+             _startDateAfter = null;
+             _endDateBefore = null;
+             _participantsFilter = "";
+             _activeFilterCount = 0;
+          }
+        });
+        
+        _fetchTournaments(isNewSearch: true);
       });
-      _fetchTournaments(isNewSearch: true);
     });
     _fetchTournaments(isNewSearch: true);
   }
@@ -62,14 +77,6 @@ class _ForumHomePageState extends State<ForumHomePage> {
     });
   }
 
-  List<String> _getActiveFilterFields() {
-    List<String> activeFields = [];
-    if (_organizerFilter.isNotEmpty) activeFields.add('organizer');
-    if (_startDateAfter != null || _endDateBefore != null) activeFields.add('date');
-    if (_participantsFilter.isNotEmpty) activeFields.add('participants');
-    return activeFields;
-  }
-
   bool _validateDates() {
     if (_startDateAfter != null && _endDateBefore != null) {
       if (_startDateAfter!.isAfter(_endDateBefore!)) {
@@ -86,46 +93,24 @@ class _ForumHomePageState extends State<ForumHomePage> {
   }
 
   Future<void> _fetchTournaments({int page = 1, bool isNewSearch = false}) async {
-    if (_isLoading) return;
-
     setState(() {
-      _isLoading = true;
+      if (isNewSearch) _isLoading = true;
       if (isNewSearch) {
         _currentPage = 1;
-        _tournaments = [];
+        _tournaments = []; 
       }
     });
 
     final request = context.read<CookieRequest>();
 
     try {
-      final activeFilters = _getActiveFilterFields();
-      String sortParam;
       final sortPrefix = _sortDirection == 'desc' ? '-' : '';
-
-      if (activeFilters.length > 1) {
-        sortParam = '${sortPrefix}name';
-      } else if (activeFilters.length == 1) {
-        String activeFilterField = 'name';
-        if (_organizerFilter.isNotEmpty) activeFilterField = 'organizer';
-        else if (_startDateAfter != null || _endDateBefore != null) activeFilterField = 'start_date';
-        else if (_participantsFilter.isNotEmpty) activeFilterField = 'participants';
-
-        if (_primarySortField == activeFilterField) {
-          sortParam = '$sortPrefix$_primarySortField';
-        } else if (_primarySortField == 'name') {
-          sortParam = '${sortPrefix}name';
-        } else {
-          sortParam = '${sortPrefix}name';
-        }
-      } else {
-        sortParam = '${sortPrefix}name';
-      }
+      String sortField = _primarySortField ?? 'name';
+      final sortParam = '$sortPrefix$sortField';
 
       final params = {
-        'page': page.toString(),
+        'page': isNewSearch ? '1' : page.toString(), 
         'sort': sortParam,
-        'primary_sort': _primarySortField ?? 'name',
         'q': _searchQuery,
         'organizer': _organizerFilter,
         'start_date_after': _startDateAfter?.toIso8601String().split('T')[0] ?? "",
@@ -134,34 +119,52 @@ class _ForumHomePageState extends State<ForumHomePage> {
       };
       
       params.removeWhere((key, value) => value.isEmpty);
-      
       final queryString = Uri(queryParameters: params).query;
-      final response = await request.get("${Endpoints.forumSearch}?$queryString");
-      final tournaments = (response['tournaments'] as List)
-          .map((d) => ForumTournament.fromJson(d))
-          .toList();
+      final fullUrl = "${Endpoints.forumSearch}?$queryString";
+
+      final response = await request.get(fullUrl);
       
-      final pagination = response['pagination'] ?? {};
-      
-      setState(() {
-        _tournaments = tournaments;
-        _currentPage = pagination['current_page'] ?? page;
-        _totalPages = pagination['total_pages'] ?? 1;
-        _isLoading = false;
-      });
+      if (!mounted) return;
+
+      if (response != null && response['tournaments'] != null) {
+        final rawList = response['tournaments'] as List;
+        
+        final tournaments = rawList.map((d) {
+          if (d is Map<String, dynamic>) {
+            d['thread_count'] ??= 0;
+            d['post_count'] ??= 0;
+            d['participant_count'] ??= 0;
+            d['name'] ??= "Unnamed Tournament";
+            d['description'] ??= "Tidak ada deskripsi";
+            d['organizer_username'] ??= "Unknown";
+            d['start_date'] ??= ""; 
+            d['end_date'] ??= "";
+            d['url'] ??= "";
+          }
+          return ForumTournament.fromJson(d);
+        }).toList();
+        
+        final pagination = response['pagination'] ?? {};
+        
+        setState(() {
+          _tournaments = tournaments;
+          _currentPage = pagination['current_page'] ?? page;
+          _totalPages = pagination['total_pages'] ?? 1;
+          _isLoading = false;
+        });
+      } else {
+         if (mounted) setState(() => _isLoading = false);
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _tournaments = [];
-      });
       if (mounted) {
-        CustomSnackbar.show(
-          context,
-          "Gagal memuat data: $e",
-          SnackbarStatus.error,
-        );
+        setState(() => _isLoading = false);
+        CustomSnackbar.show(context, "Gagal memuat data: $e", SnackbarStatus.error);
       }
     }
+  }
+
+  Future<void> _handleRefresh() async {
+    await _fetchTournaments(isNewSearch: true);
   }
 
   void _showFilterDialog() {
@@ -180,26 +183,25 @@ class _ForumHomePageState extends State<ForumHomePage> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            List<String> tempActiveFilters = [];
-            if (tempOrganizer.isNotEmpty) tempActiveFilters.add('organizer');
-            if (tempStartDate != null || tempEndDate != null) tempActiveFilters.add('date');
-            if (tempParticipants.isNotEmpty) tempActiveFilters.add('participants');
-            
-            bool showPrimarySort = tempActiveFilters.length > 1;
+            bool hasActiveFilters = tempOrganizer.isNotEmpty || 
+                                    tempStartDate != null || 
+                                    tempEndDate != null || 
+                                    tempParticipants.isNotEmpty || 
+                                    tempPrimarySort != null;
 
             return AlertDialog(
               title: Row(
                 children: [
                   const Expanded(
                     child: Text(
-                      "Filter Turnamen",
+                      "Filter & Urutkan",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: AppColors.blue400,
                       ),
                     ),
                   ),
-                  if (tempActiveFilters.isNotEmpty)
+                  if (hasActiveFilters)
                     TextButton(
                       onPressed: () {
                         setDialogState(() {
@@ -227,6 +229,34 @@ class _ForumHomePageState extends State<ForumHomePage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Text("Urutkan Berdasarkan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.blue400)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: tempPrimarySort,
+                          decoration: const InputDecoration(
+                            hintText: "Default (Nama)",
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: null, child: Text("Nama Turnamen (Default)")),
+                            DropdownMenuItem(value: "organizer", child: Text("Penyelenggara")),
+                            DropdownMenuItem(value: "start_date", child: Text("Tanggal Mulai")),
+                            DropdownMenuItem(value: "participants", child: Text("Jumlah Pemain")),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() {
+                              tempPrimarySort = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 30, thickness: 1),
+
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         const Text("Filter Penyelenggara", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.blue400)),
                         const SizedBox(height: 8),
                         TextField(
@@ -236,9 +266,7 @@ class _ForumHomePageState extends State<ForumHomePage> {
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (value) {
-                            setDialogState(() {
-                              tempOrganizer = value;
-                            });
+                            tempOrganizer = value; 
                           },
                         ),
                       ],
@@ -283,7 +311,7 @@ class _ForumHomePageState extends State<ForumHomePage> {
                                 Text(
                                   tempStartDate != null 
                                       ? "${tempStartDate!.day}/${tempStartDate!.month}/${tempStartDate!.year}"
-                                      : "Mulai Setelah Tanggal",
+                                      : "Mulai Setelah",
                                 ),
                               ],
                             ),
@@ -323,7 +351,7 @@ class _ForumHomePageState extends State<ForumHomePage> {
                                 Text(
                                   tempEndDate != null 
                                       ? "${tempEndDate!.day}/${tempEndDate!.month}/${tempEndDate!.year}"
-                                      : "Selesai Sebelum Tanggal",
+                                      : "Selesai Sebelum",
                                 ),
                               ],
                             ),
@@ -351,46 +379,11 @@ class _ForumHomePageState extends State<ForumHomePage> {
                           ),
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
-                            setDialogState(() {
-                              tempParticipants = value;
-                            });
+                            tempParticipants = value; 
                           },
                         ),
                       ],
                     ),
-                    
-                    if (showPrimarySort) ...[
-                      const SizedBox(height: 20),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("Sortir Utama", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.blue400)),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: tempPrimarySort,
-                            decoration: const InputDecoration(
-                              hintText: "Pilih field sortir...",
-                              border: OutlineInputBorder(),
-                            ),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text("Tidak ada")),
-                              if (tempOrganizer.isNotEmpty)
-                                const DropdownMenuItem(value: "organizer", child: Text("Penyelenggara")),
-                              if (tempStartDate != null || tempEndDate != null)
-                                const DropdownMenuItem(value: "start_date", child: Text("Tanggal Mulai")),
-                              if (tempParticipants.isNotEmpty)
-                                const DropdownMenuItem(value: "participants", child: Text("Jumlah Pemain")),
-                              const DropdownMenuItem(value: "name", child: Text("Nama Turnamen")),
-                            ],
-                            onChanged: (value) {
-                              setDialogState(() {
-                                tempPrimarySort = value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -407,6 +400,8 @@ class _ForumHomePageState extends State<ForumHomePage> {
                 ),
                 TextButton(
                   onPressed: () {
+                    if (tempDateError != null) return;
+
                     setState(() {
                       _organizerFilter = tempOrganizer;
                       _startDateAfter = tempStartDate;
@@ -414,6 +409,7 @@ class _ForumHomePageState extends State<ForumHomePage> {
                       _participantsFilter = tempParticipants;
                       _primarySortField = tempPrimarySort;
                       _dateError = tempDateError;
+                      
                     });
                     
                     if (!_validateDates()) {
@@ -426,6 +422,7 @@ class _ForumHomePageState extends State<ForumHomePage> {
                     }
                     
                     _updateFilterCount();
+
                     Navigator.of(dialogContext).pop();
               
                     Future.delayed(Duration.zero, () {
@@ -435,7 +432,7 @@ class _ForumHomePageState extends State<ForumHomePage> {
                     
                     _fetchTournaments(isNewSearch: true);
                   },
-                  child: const Text("Terapkan Filter"),
+                  child: const Text("Terapkan"),
                 ),
               ],
             );
@@ -459,7 +456,8 @@ class _ForumHomePageState extends State<ForumHomePage> {
     );
 
     Set<int> pagesToShow = {1, _totalPages, _currentPage};
-    for (int i = -2; i <= 2; i++) {
+    
+    for (int i = -1; i <= 1; i++) {
       final page = _currentPage + i;
       if (page > 1 && page < _totalPages) {
         pagesToShow.add(page);
@@ -485,8 +483,8 @@ class _ForumHomePageState extends State<ForumHomePage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: page == _currentPage ? AppColors.blue400 : Colors.white,
               foregroundColor: page == _currentPage ? Colors.white : AppColors.blue400,
-              minimumSize: const Size(40, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(36, 36), 
+              padding: const EdgeInsets.symmetric(horizontal: 8), 
             ),
             child: Text(page.toString()),
           ),
@@ -513,11 +511,36 @@ class _ForumHomePageState extends State<ForumHomePage> {
     );
   }
 
+
+  Widget _buildDefaultTournamentIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.blue50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.emoji_events, color: AppColors.blue400, size: 28),
+    );
+  }
+
+  Widget _buildStatIcon(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey[600]),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.blue50, 
+      backgroundColor: AppColors.blue50,
       appBar: AppBar(
+        centerTitle: true,
         title: const Text(
           "Forum Turnamen",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
@@ -526,198 +549,388 @@ class _ForumHomePageState extends State<ForumHomePage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: LeftDrawer(userData: widget.userData),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: "Cari turnamen...",
-                prefixIcon: const Icon(Icons.search, color: AppColors.blue400),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.blue400),
+      
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: AppColors.blue400,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "Cari turnamen...",
+                  prefixIcon: const Icon(Icons.search, color: AppColors.blue400),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.blue400),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
-                filled: true,
-                fillColor: Colors.white,
               ),
             ),
-          ),
-        
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.blue400),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _showFilterDialog,
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.filter_list, size: 20, color: AppColors.blue400),
-                              const SizedBox(width: 8),
-                              const Text(
-                                "Filter",
-                                style: TextStyle(
-                                  color: AppColors.blue400,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (_activeFilterCount > 0) ...[
+                        border: Border.all(color: AppColors.blue400),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _showFilterDialog,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.filter_list, size: 20, color: AppColors.blue400),
                                 const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
+                                const Text(
+                                  "Filter",
+                                  style: TextStyle(
                                     color: AppColors.blue400,
-                                    shape: BoxShape.circle,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  child: Text(
-                                    _activeFilterCount.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                                if (_activeFilterCount > 0) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.blue400,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      _activeFilterCount.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.blue400),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _sortDirection,
-                          isExpanded: true,
-                          icon: const Icon(Icons.arrow_drop_down, color: AppColors.blue400),
-                          style: const TextStyle(
-                            color: AppColors.blue400,
-                            fontWeight: FontWeight.w500,
+                  const SizedBox(width: 12),
+                  
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.blue400),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _sortDirection,
+                            isExpanded: true,
+                            icon: const Icon(Icons.arrow_drop_down, color: AppColors.blue400),
+                            style: const TextStyle(
+                              color: AppColors.blue400,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: "asc", child: Text("A-Z / Lama")),
+                              DropdownMenuItem(value: "desc", child: Text("Z-A / Baru")),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _sortDirection = value ?? "desc";
+                              });
+                              _fetchTournaments(isNewSearch: true);
+                            },
                           ),
-                          items: const [
-                            DropdownMenuItem(value: "asc", child: Text("A-Z / Lama")),
-                            DropdownMenuItem(value: "desc", child: Text("Z-A / Baru")),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _sortDirection = value ?? "desc";
-                            });
-                            _fetchTournaments(isNewSearch: true);
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            if (_organizerFilter.isNotEmpty || _startDateAfter != null || _endDateBefore != null || _participantsFilter.isNotEmpty)
+              Container(
+                height: 50,
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    if (_organizerFilter.isNotEmpty)
+                      _buildChip("Org: $_organizerFilter", () {
+                        setState(() {
+                          _organizerFilter = "";
+                          _updateFilterCount();
+                          _fetchTournaments(isNewSearch: true);
+                        });
+                      }),
+
+                    if (_startDateAfter != null)
+                      _buildChip("Mulai > ${_startDateAfter!.day}/${_startDateAfter!.month}", () {
+                        setState(() {
+                          _startDateAfter = null;
+                          _updateFilterCount();
+                          _fetchTournaments(isNewSearch: true);
+                        });
+                      }),
+
+                    if (_endDateBefore != null)
+                      _buildChip("Selesai < ${_endDateBefore!.day}/${_endDateBefore!.month}", () {
+                        setState(() {
+                          _endDateBefore = null;
+                          _updateFilterCount();
+                          _fetchTournaments(isNewSearch: true);
+                        });
+                      }),
+
+                    if (_participantsFilter.isNotEmpty)
+                      _buildChip("Pemain: $_participantsFilter", () {
+                        setState(() {
+                          _participantsFilter = "";
+                          _updateFilterCount();
+                          _fetchTournaments(isNewSearch: true);
+                        });
+                      }),
+                      
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ActionChip(
+                        label: const Text('Reset', style: TextStyle(fontSize: 12)),
+                        onPressed: () {
+                           setState(() {
+                             _organizerFilter = "";
+                             _startDateAfter = null;
+                             _endDateBefore = null;
+                             _participantsFilter = "";
+                             _activeFilterCount = 0;
+                             _fetchTournaments(isNewSearch: true);
+                           });
+                        },
+                        backgroundColor: Colors.red.shade50,
+                        labelStyle: TextStyle(color: Colors.red.shade400),
+                        side: BorderSide(color: Colors.red.shade400),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            const SizedBox(height: 16),
+            
+            Expanded(
+              child: _isLoading && _tournaments.isEmpty
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.blue400))
+                  : _tournaments.isEmpty
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off, size: 64, color: AppColors.textSecondary),
+                              SizedBox(height: 16),
+                              Text(
+                                "Tidak ada turnamen ditemukan.",
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(), 
+                          itemCount: _tournaments.length,
+                          itemBuilder: (_, index) {
+                            final tournament = _tournaments[index];
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 1,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DaftarThreadPage(tournament: tournament),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: (tournament.banner != null && tournament.banner!.isNotEmpty)
+                                                ? Image.network(
+                                                    tournament.banner!,
+                                                    width: 50, 
+                                                    height: 50,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (ctx, err, stack) => _buildDefaultTournamentIcon(),
+                                                  )
+                                                : _buildDefaultTournamentIcon(),
+                                          ),
+                                          
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  tournament.name,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.textPrimary,
+                                                    fontSize: 16,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  "By @${tournament.organizer}",
+                                                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                                        ],
+                                      ),
+
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
+                                        child: Row(
+                                          children: [
+                                            _buildStatIcon(Icons.forum_outlined, "${tournament.threadCount} Thread"),
+                                            const SizedBox(width: 12),
+                                            _buildStatIcon(Icons.comment_outlined, "${tournament.postCount} Post"),
+                                            const SizedBox(width: 12),
+                                            _buildStatIcon(Icons.people, "${tournament.participantCount} User"),
+                                          ],
+                                        ),
+                                      ),
+
+                                      if (tournament.relatedImages.isNotEmpty) ...[
+                                        const Divider(height: 1),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          "Tim yang berpartisipasi: ",
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          height: 40, 
+                                          child: ListView.separated(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: tournament.relatedImages.length,
+                                            separatorBuilder: (ctx, i) => const SizedBox(width: 8),
+                                            itemBuilder: (context, imgIndex) {
+                                              final String? imgUrl = tournament.relatedImages[imgIndex];
+                                              bool hasImage = imgUrl != null && imgUrl.isNotEmpty;
+
+                                              return Container(
+                                                width: 40,
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(color: Colors.grey.shade200),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: hasImage 
+                                                    ? Image.network(
+                                                        imgUrl,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (ctx, err, stack) => Container(
+                                                          color: Colors.grey[100],
+                                                          child: const Center(child: Icon(Icons.group, size: 20, color: Colors.grey)),
+                                                        ),
+                                                      )
+                                                    : Container( 
+                                                        color: Colors.grey[100],
+                                                        child: const Center(child: Icon(Icons.group, size: 20, color: Colors.grey)),
+                                                      ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          Expanded(
-            child: _isLoading && _tournaments.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: AppColors.blue400))
-                : _tournaments.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off, size: 64, color: AppColors.textSecondary),
-                            SizedBox(height: 16),
-                            Text(
-                              "Tidak ada turnamen ditemukan.",
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _tournaments.length,
-                        itemBuilder: (_, index) {
-                          final tournament = _tournaments[index];
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  spreadRadius: 1,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.blue50,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(Icons.emoji_events, color: AppColors.blue400, size: 24),
-                              ),
-                              title: Text(
-                                tournament.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
-                                  "${tournament.threadCount} Thread • ${tournament.postCount} Post",
-                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                                ),
-                              ),
-                              trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DaftarThreadPage(tournament: tournament),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  _buildPagination(),
-        ],
+            _buildPagination(),
+          ],
+        ),
       ),
     );
   }
+}
+
+class Debouncer {
+  final int milliseconds;
+  Timer? _timer;
+
+  Debouncer({required this.milliseconds});
+
+  void run(VoidCallback action) {
+    if (_timer != null) {
+      _timer!.cancel();
+    }
+    _timer = Timer(Duration(milliseconds: milliseconds), action);
+  }
+}
+
+Widget _buildChip(String label, VoidCallback onDelete) {
+  return Padding(
+    padding: const EdgeInsets.only(right: 8.0),
+    child: Chip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      deleteIcon: const Icon(Icons.close, size: 16),
+      onDeleted: onDelete,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.blue400),
+      ),
+    ),
+  );
 }

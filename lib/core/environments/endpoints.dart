@@ -47,11 +47,16 @@ class Endpoints {
   static String editTeam(int id) => '$baseUrl/teams/$id/edit/';
   static String kickMember(int teamId, String username) => 
       '$baseUrl/teams/$teamId/member/$username/delete/';
-  static const String forumSearch = '$baseUrl/forums/api/search/'; 
-  static String createForumThread(int tournamentId) => 
-      '$baseUrl/forums/api/tournament/$tournamentId/create-thread/';
+  static const String forumSearch = '$baseUrl/forums/search/'; 
   static String forumThreads(int tournamentId) => 
       '$baseUrl/forums/api/tournament/$tournamentId/threads/';
+  static String createForumThread(int id) => 
+    "$baseUrl/forums/api/tournament/$id/create-thread/";
   static String forumPosts(int threadId) => 
       '$baseUrl/forums/api/thread/$threadId/posts/';
+  static String replyToThread(int threadId) => 
+      '$baseUrl/forums/api/thread/$threadId/reply/';
+  static String editPost(int postId) => "$baseUrl/forums/api/post/$postId/edit/";
+  static String deletePost(int postId) => "$baseUrl/forums/api/post/$postId/delete/";
+  static String deleteThread(int threadId) => "$baseUrl/forums/api/thread/$threadId/delete/";
 }

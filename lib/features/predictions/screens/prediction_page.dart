@@ -93,8 +93,9 @@ class _PredictionPageState extends State<PredictionPage> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              if (homeController.text.isEmpty || awayController.text.isEmpty)
+              if (homeController.text.isEmpty || awayController.text.isEmpty) {
                 return;
+              }
 
               final response = await request.postJson(
                 Endpoints.predictionEditScore,

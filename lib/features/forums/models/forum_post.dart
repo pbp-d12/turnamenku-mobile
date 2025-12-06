@@ -20,42 +20,56 @@ class ForumPostResponse {
     };
 }
 
-class ForumPost {  
-    int id;
-    String authorUsername;
-    String body;
-    String createdAt;
-    String? imageUrl;
-    int? parentId;
-    bool isThreadAuthor;
-    int replyCount;
-    bool isEdited;
+class ForumPost {
+  final int id;
+  final String authorUsername;
+  final String body;
+  final String createdAt;
+  final String? imageUrl;
+  final int replyCount;
+  final bool isThreadAuthor;
+  final bool isEdited;
+  final int? parentId;
+  final int depth;
+  
+  final bool canEdit;
+  final bool canDelete;
 
-    ForumPost({
-        required this.id,
-        required this.authorUsername,
-        required this.body,
-        required this.createdAt,
-        required this.imageUrl,
-        required this.parentId,
-        required this.isThreadAuthor,
-        required this.replyCount,
-        required this.isEdited,
-    });
+  ForumPost({
+    required this.id,
+    required this.authorUsername,
+    required this.body,
+    required this.createdAt,
+    this.imageUrl,
+    this.replyCount = 0,
+    this.isThreadAuthor = false,
+    this.isEdited = false,
+    this.parentId,
+    this.depth = 0,
+    
+    this.canEdit = false,
+    this.canDelete = false,
+  });
 
-    factory ForumPost.fromJson(Map<String, dynamic> json) => ForumPost(
-        id: json["id"],
-        authorUsername: json["author_username"],
-        body: json["body"],
-        createdAt: json["created_at"],
-        imageUrl: json["image_url"],
-        parentId: json["parent_id"],
-        isThreadAuthor: json["is_thread_author"],
-        replyCount: json["reply_count"],
-        isEdited: json["is_edited"],
+  factory ForumPost.fromJson(Map<String, dynamic> json) {
+    return ForumPost(
+      id: json['id'] ?? 0,
+      authorUsername: json['author_username'] ?? "Unknown",
+      body: json['body'] ?? "",
+      createdAt: json['created_at'] ?? "",
+      imageUrl: json['image_url'], 
+      replyCount: json['reply_count'] ?? 0,
+      isThreadAuthor: json['is_thread_author'] ?? false,
+      isEdited: json['is_edited'] ?? false,
+      parentId: json['parent_id'],
+      depth: json['depth'] ?? 0,
+      
+      canEdit: json['can_edit'] ?? false,
+      canDelete: json['can_delete'] ?? false,
     );
+  }
 
-    Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => {
         "id": id,
         "author_username": authorUsername,
         "body": body,
@@ -65,5 +79,8 @@ class ForumPost {
         "is_thread_author": isThreadAuthor,
         "reply_count": replyCount,
         "is_edited": isEdited,
+        "depth": depth,
+        "can_edit": canEdit,
+        "can_delete": canDelete,
     };
 }
