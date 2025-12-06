@@ -15,28 +15,51 @@ class ForumSearchResponse {
 }
 
 class ForumTournament {
-    int id;
-    String name;
-    String description;
-    int threadCount;
-    int postCount;
-    String organizerUsername;
+  final int id;
+  final String name;
+  final String description;
+  final String organizer;
+  final String startDate;
+  final String endDate;
+  final int threadCount;
+  final int postCount;
+  final int participantCount;
+  final List<String> relatedImages;
+  
+  final String? banner; 
 
-    ForumTournament({
-        required this.id,
-        required this.name,
-        required this.description,
-        required this.threadCount,
-        required this.postCount,
-        required this.organizerUsername,
-    });
+  ForumTournament({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.organizer,
+    required this.startDate,
+    required this.endDate,
+    required this.threadCount,
+    required this.postCount,
+    required this.participantCount,
+    required this.relatedImages,
+    
+    this.banner, 
+  });
 
-    factory ForumTournament.fromJson(Map<String, dynamic> json) => ForumTournament(
-        id: json["id"],
-        name: json["name"],
-        description: json["description"],
-        threadCount: json["thread_count"],
-        postCount: json["post_count"],
-        organizerUsername: json["organizer_username"],
+  factory ForumTournament.fromJson(Map<String, dynamic> json) {
+    return ForumTournament(
+      id: json['id'],
+      name: json['name'] ?? "Unnamed Tournament",
+      description: json['description'] ?? "",
+      organizer: json['organizer_username'] ?? "Unknown",
+      startDate: json['start_date'] ?? "",
+      endDate: json['end_date'] ?? "",
+      threadCount: int.tryParse(json['thread_count']?.toString() ?? "0") ?? 0,
+      postCount: int.tryParse(json['post_count']?.toString() ?? "0") ?? 0,
+      participantCount: int.tryParse(json['participant_count']?.toString() ?? "0") ?? 0,
+      
+      relatedImages: json['related_images'] != null
+          ? List<String>.from(json['related_images'].map((x) => x.toString()))
+          : [],
+      
+      banner: json['banner'], 
     );
+  }
 }

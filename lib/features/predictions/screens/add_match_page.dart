@@ -244,8 +244,9 @@ class _AddMatchPageState extends State<AddMatchPage> {
                                       setState(() => _selectedAwayTeamId = val),
                             validator: (val) {
                               if (val == null) return "Wajib dipilih";
-                              if (val == _selectedHomeTeamId)
+                              if (val == _selectedHomeTeamId) {
                                 return "Tim tidak boleh sama";
+                              }
                               return null;
                             },
                           ),
